@@ -2,18 +2,31 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Balap Pintar PPKn Kelas 6 SD - Mabar 40 Siswa</title>
-    <!-- Tailwind CSS untuk tata letak responsif dan modern -->
+    <!-- Tailwind CSS untuk tata letak responsif & modern -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js untuk rendering Sirkuit Balap 3D -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Google Fonts: Fredoka (ramah anak) & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
-        body {
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        html, body {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100dvh;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
             background-color: #0f172a;
@@ -24,14 +37,27 @@
         .font-game {
             font-family: 'Fredoka', sans-serif;
         }
-        /* Tombol 3D bergaya game */
-        .btn-3d {
-            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+        .safe-hud {
+            padding-top: max(0.5rem, var(--safe-top));
+            padding-bottom: max(0.65rem, var(--safe-bottom));
+            padding-left: max(0.6rem, var(--safe-left));
+            padding-right: max(0.6rem, var(--safe-right));
         }
-        .btn-3d:active:not(:disabled) {
-            transform: translateY(3px);
-            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+        .safe-modal {
+            padding-top: max(0.75rem, var(--safe-top));
+            padding-bottom: max(0.75rem, var(--safe-bottom));
+            padding-left: max(0.75rem, var(--safe-left));
+            padding-right: max(0.75rem, var(--safe-right));
+        }
+        /* Tombol 3D bergaya game & responsif sentuh Android */
+        .btn-3d {
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.1s ease;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.38);
+            touch-action: manipulation;
+        }
+        .btn-3d:active:not(:disabled), .btn-pressed {
+            transform: translateY(3px) scale(0.97);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.38);
         }
         .btn-3d:disabled {
             opacity: 0.6;
@@ -39,167 +65,172 @@
         }
         /* Animasi Pop & Efek Turbo */
         @keyframes popScale {
-            0% { transform: scale(0.85); opacity: 0; }
+            0% { transform: scale(0.88); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
         .animate-pop {
-            animation: popScale 0.25s ease-out forwards;
+            animation: popScale 0.22s ease-out forwards;
         }
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.7); }
-            50% { box-shadow: 0 0 32px rgba(239, 68, 68, 0.95); }
+            0%, 100% { box-shadow: 0 0 14px rgba(250, 204, 21, 0.75); }
+            50% { box-shadow: 0 0 28px rgba(239, 68, 68, 0.95); }
         }
         .turbo-active {
             animation: pulseGlow 0.45s infinite;
         }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); border-radius: 8px; }
-        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 8px; }
+        /* Scrollbar halus & menyembunyikan scrollbar horizontal di HP */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.35); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.45); border-radius: 8px; }
     </style>
 </head>
-<body class="relative w-screen h-screen overflow-hidden text-slate-100">
+<body class="relative w-screen h-[100dvh] overflow-hidden text-slate-100">
 
-    <!-- KANVAS 3D SIRKUIT BALAP -->
+    <!-- KANVAS 3D SIRKUIT BALAP (MENDUKUNG GESER / SWIPE ANDROID) -->
     <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
 
     <!-- ===================================================================== -->
-    <!-- 1. LAYAR LOBI / MASUK KELAS                                           -->
+    <!-- 1. LAYAR LOBI / MASUK KELAS (OPTIMAL ANDROID PORTRAIT & LANDSCAPE)    -->
     <!-- ===================================================================== -->
-    <div id="screen-lobby" class="fixed inset-0 z-30 flex items-center justify-center p-2.5 sm:p-5 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+    <div id="screen-lobby" class="fixed inset-0 z-30 flex items-start sm:items-center justify-center safe-modal bg-slate-950/80 backdrop-blur-md overflow-y-auto">
         <div class="max-w-5xl w-full bg-slate-900/95 border-2 border-sky-500/50 rounded-3xl shadow-2xl overflow-hidden my-auto animate-pop">
-            
+
             <!-- Header Lobi -->
-            <div class="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b-4 border-red-800">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl sm:text-4xl bg-white/20 p-2 rounded-2xl">🏎️</span>
+            <div class="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 px-4 py-3 sm:px-6 sm:py-4 flex flex-wrap items-center justify-between gap-2 border-b-4 border-red-800">
+                <div class="flex items-center gap-2.5 sm:gap-3">
+                    <span class="text-2xl sm:text-4xl bg-white/20 p-1.5 sm:p-2 rounded-2xl shrink-0">🏎️</span>
                     <div>
-                        <h1 class="font-game text-lg sm:text-3xl font-bold text-white drop-shadow">BALAP PINTAR PPKn KELAS 6</h1>
-                        <p class="text-[11px] sm:text-sm text-amber-100 font-medium">Mabar Edukasi Pancasila, UUD 1945 & Bhinneka Tunggal Ika (Maks. 40 Siswa)</p>
+                        <h1 class="font-game text-base sm:text-3xl font-bold text-white leading-tight drop-shadow">BALAP PINTAR PPKn KELAS 6</h1>
+                        <p class="text-[11px] sm:text-sm text-amber-100 font-medium leading-tight">Mabar Pancasila, UUD 1945 & Bhinneka Tunggal Ika (40 Siswa)</p>
                     </div>
                 </div>
-                <div id="connection-badge" class="bg-slate-950/60 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border border-white/20">
-                    <span id="conn-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <span id="conn-text">Menghubungkan Server...</span>
+                <div id="connection-badge" class="bg-slate-950/60 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/20">
+                    <span id="conn-dot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="conn-text">Menghubungkan...</span>
                 </div>
             </div>
 
             <!-- Konten Utama Lobi -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 p-4 sm:p-6">
-                
-                <!-- Kolom Kiri: Identitas, 6 Mobil Nusantara, & 3 Level -->
-                <div class="lg:col-span-6 space-y-3.5">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 p-3.5 sm:p-6">
+
+                <!-- Kolom Kiri: Nama, 6 Mobil Nusantara, & 3 Level -->
+                <div class="lg:col-span-6 space-y-3">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">1. Nama Panggilan Siswa / Guru</label>
-                        <input id="input-name" type="text" maxlength="18" placeholder="Contoh: Budi_6A atau Ibu_Siti" 
-                               class="w-full bg-slate-800 border-2 border-slate-700 focus:border-sky-400 rounded-xl px-4 py-2 text-white font-semibold outline-none transition">
+                        <label for="input-name" class="block text-[11px] font-bold uppercase tracking-wider text-sky-400 mb-1">1. Nama Panggilan Siswa / Guru</label>
+                        <input id="input-name" type="text" maxlength="18" autocomplete="off" placeholder="Ketik namamu (cth: Budi_6A)"
+                               class="w-full bg-slate-800 border-2 border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-white font-semibold outline-none transition">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">2. Pilih Mobil Balap Nusantara (6 Pilihan)</label>
-                        <div id="car-selector" class="grid grid-cols-3 gap-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[11px] font-bold uppercase tracking-wider text-sky-400">2. Pilih Mobil Balap Nusantara</label>
+                            <span class="text-[10px] text-slate-400 sm:hidden">Geser samping ➔</span>
+                        </div>
+                        <!-- Horizontal scroll di Android kecil, Grid 3 kolom di tablet/desktop -->
+                        <div id="car-selector" class="flex sm:grid sm:grid-cols-3 gap-2 overflow-x-auto no-scrollbar pb-1">
                             <!-- Diisi otomatis via JS -->
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">3. Pilih Level Materi & Sirkuit Balap</label>
-                        <div id="level-selector" class="grid grid-cols-3 gap-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[11px] font-bold uppercase tracking-wider text-sky-400">3. Pilih Level Materi & Sirkuit Duel</label>
+                            <span class="text-[10px] text-slate-400 sm:hidden">15 Soal / Level</span>
+                        </div>
+                        <div id="level-selector" class="flex sm:grid sm:grid-cols-3 gap-2 overflow-x-auto no-scrollbar pb-1">
                             <!-- Diisi otomatis via JS -->
                         </div>
                     </div>
 
                     <!-- Mode Mabar Kelas vs Mode Solo Bot -->
-                    <div class="bg-slate-800/75 p-3.5 rounded-2xl border border-slate-700 space-y-2.5">
-                        <div class="text-xs font-bold uppercase tracking-wider text-amber-400">4. Pilih Mode Permainan</div>
-                        
+                    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 space-y-2.5">
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-amber-400">4. Mulai Bermain</div>
+
                         <div class="flex gap-2">
-                            <input id="input-room-code" type="text" maxlength="6" placeholder="KODE ROOM (cth: 6A2026)" 
-                                   class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3 py-2 text-center font-game text-base sm:text-lg tracking-widest uppercase text-emerald-300 outline-none">
-                            <button id="btn-join-room" type="button" class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold px-4 py-2 rounded-xl text-sm border-b-4 border-emerald-700">
+                            <input id="input-room-code" type="text" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="KODE ROOM"
+                                   class="w-32 sm:flex-1 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-2.5 py-2.5 text-center font-game text-base sm:text-lg tracking-widest uppercase text-emerald-300 outline-none">
+                            <button id="btn-join-room" type="button" class="btn-3d flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold px-3.5 py-2.5 rounded-xl text-sm border-b-4 border-emerald-700">
                                 Gabung Kelas
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                            <button id="btn-create-room" type="button" class="btn-3d bg-sky-500 hover:bg-sky-400 text-slate-950 font-game font-bold py-2.5 px-3 rounded-xl text-sm border-b-4 border-sky-700 flex items-center justify-center gap-1.5">
+                        <div class="grid grid-cols-2 gap-2 pt-0.5">
+                            <button id="btn-create-room" type="button" class="btn-3d bg-sky-500 hover:bg-sky-400 text-slate-950 font-game font-bold py-2.5 px-2.5 rounded-xl text-xs sm:text-sm border-b-4 border-sky-700 flex items-center justify-center gap-1.5">
                                 <span>🏫</span>
-                                <span>Buat Room Baru (Guru)</span>
+                                <span>Buat Room Guru</span>
                             </button>
 
-                            <button id="btn-solo-bot" type="button" class="btn-3d bg-amber-400 hover:bg-amber-300 text-slate-950 font-game font-bold py-2.5 px-3 rounded-xl text-sm border-b-4 border-amber-600 flex items-center justify-center gap-1.5">
+                            <button id="btn-solo-bot" type="button" class="btn-3d bg-amber-400 hover:bg-amber-300 text-slate-950 font-game font-bold py-2.5 px-2.5 rounded-xl text-xs sm:text-sm border-b-4 border-amber-600 flex items-center justify-center gap-1.5">
                                 <span>🤖</span>
-                                <span>Latihan Solo (vs Bot AI)</span>
+                                <span>Latihan Solo AI</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Kolom Kanan: Panduan Materi atau Ruang Tunggu Kelas (Max 40 Siswa) -->
-                <div class="lg:col-span-6 flex flex-col bg-slate-950/85 rounded-2xl border border-slate-800 p-4 min-h-[300px]">
-                    
+                <div class="lg:col-span-6 flex flex-col bg-slate-950/85 rounded-2xl border border-slate-800 p-3.5 sm:p-4 min-h-[230px]">
+
                     <!-- Tampilan Sebelum Masuk Room -->
                     <div id="lobby-guide" class="flex-1 flex flex-col justify-between">
                         <div>
-                            <h3 class="font-game text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
-                                <span>📚</span> Aturan Main & Materi PPKn Kelas 6
+                            <h3 class="font-game text-base sm:text-lg font-bold text-amber-400 mb-2 flex items-center gap-2">
+                                <span>📱</span> Cara Main di Android & Laptop
                             </h3>
                             <ul class="space-y-2 text-xs sm:text-sm text-slate-300">
                                 <li class="flex items-start gap-2">
-                                    <span class="bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded">1</span>
-                                    <span>Mobil melaju otomatis di lintasan 3D. Gunakan <strong>Panah Kiri/Kanan (A/D)</strong> atau tombol layar untuk berpindah jalur.</span>
+                                    <span class="bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded shrink-0">1</span>
+                                    <span>Ketuk tombol <strong>◀ KIRI / KANAN ▶</strong> di sudut bawah layar (atau <strong>geser/swipe layar</strong>) untuk menghindari rintangan & masuk jalur percepatan.</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded">2</span>
-                                    <span>Setiap melewati <strong>Gerbang Kuis</strong>, jawab soal PPKn Kelas 6 SD (36 soal bervariasi di 3 level berbeda).</span>
+                                    <span class="bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded shrink-0">2</span>
+                                    <span>Selesaikan <strong>15 Gerbang Kuis PPKn Kelas 6 SD</strong> di setiap sirkuit duel panjang (45 soal berbeda di 3 level).</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">3</span>
-                                    <span><strong>Jawaban Benar</strong> memicu <strong>TURBO BOOST 🔥</strong> (+100 Poin)! Jawaban salah memperlambat mobil & menampilkan pembahasan edukatif.</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <span class="bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded">4</span>
-                                    <span>Gunakan <strong>Live Chat Kelas</strong> untuk saling menyemangati teman sekelas (maksimal 40 siswa per room).</span>
+                                    <span class="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded shrink-0">3</span>
+                                    <span><strong>Jawaban Benar</strong> mengaktifkan <strong>TURBO BOOST 🔥</strong> (+100 Poin) untuk menyalip teman sekelas menuju garis finis!</span>
                                 </li>
                             </ul>
                         </div>
-                        <div id="lobby-alert-box" class="mt-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-200">
-                            💡 <strong>Petunjuk Mabar Kelas:</strong> Guru menekan <em>"Buat Room Baru (Guru)"</em> lalu menuliskan 6 digit Kode Room di papan tulis agar hingga 40 siswa dapat bergabung serentak!
+                        <div id="lobby-alert-box" class="mt-3 bg-indigo-950/75 border border-indigo-500/35 rounded-xl p-2.5 text-[11px] sm:text-xs text-indigo-200">
+                            💡 <strong>Info Mabar Kelas:</strong> Guru menekan <em>"Buat Room Guru"</em> lalu membagikan 6 digit Kode Room ke siswa (kapasitas hingga 40 siswa).
                         </div>
                     </div>
 
                     <!-- Tampilan Ruang Tunggu Room (Waiting Room) -->
                     <div id="lobby-waiting-room" class="hidden flex-1 flex flex-col justify-between">
                         <div>
-                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5 mb-3">
+                            <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 mb-2.5">
                                 <div>
-                                    <span class="text-[11px] text-slate-400 uppercase font-bold">Kode Room Kelas:</span>
+                                    <span class="text-[10px] text-slate-400 uppercase font-bold">Kode Room Kelas:</span>
                                     <div class="flex items-center gap-2">
                                         <span id="display-room-code" class="font-game text-2xl font-bold text-amber-400 tracking-widest">------</span>
-                                        <button id="btn-copy-code" type="button" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1 rounded-lg border border-slate-600 font-semibold">Salin</button>
+                                        <button id="btn-copy-code" type="button" class="bg-slate-800 active:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-600 font-semibold">Salin</button>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-[11px] text-slate-400 uppercase font-bold">Kapasitas Room</span>
-                                    <div id="lobby-player-count" class="font-game text-xl font-bold text-emerald-400">1 / 40 Siswa</div>
+                                    <span class="text-[10px] text-slate-400 uppercase font-bold">Peserta Kelas</span>
+                                    <div id="lobby-player-count" class="font-game text-lg sm:text-xl font-bold text-emerald-400">1 / 40 Siswa</div>
                                 </div>
                             </div>
 
-                            <div class="text-xs font-semibold text-slate-400 mb-1.5">Peserta di Ruang Tunggu:</div>
-                            <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-44 overflow-y-auto pr-1">
+                            <div class="text-[11px] font-semibold text-slate-400 mb-1.5">Siswa di Ruang Tunggu:</div>
+                            <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-36 sm:max-h-44 overflow-y-auto pr-1">
                                 <!-- Daftar siswa muncul real-time -->
                             </div>
                         </div>
 
                         <div class="pt-3 mt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
-                            <button id="btn-leave-room" type="button" class="bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-700">
+                            <button id="btn-leave-room" type="button" class="bg-slate-800 active:bg-rose-950 text-slate-300 text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-700">
                                 Keluar
                             </button>
-                            <div id="waiting-level-badge" class="bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold px-3 py-2 rounded-xl">
+                            <div id="waiting-level-badge" class="bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold px-2.5 py-2 rounded-xl">
                                 🌄 Level 1: Desa Pancasila
                             </div>
                             <button id="btn-start-race" type="button" class="btn-3d flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold py-2.5 px-4 rounded-xl text-sm sm:text-base border-b-4 border-emerald-700">
-                                🏁 MULAI BALAPAN!
+                                🏁 MULAI BALAP!
                             </button>
                         </div>
                     </div>
@@ -210,164 +241,183 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- 2. HUD SAAT BALAPAN BERLANGSUNG                                       -->
+    <!-- 2. HUD SAAT BALAPAN BERLANGSUNG (RINGKAS & LEGA DI LAYAR ANDROID)     -->
     <!-- ===================================================================== -->
-    <div id="hud-race" class="hidden fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-2.5 sm:p-4">
-        
-        <!-- BARIS ATAS: Status Pembalap, Progres Lintasan, & Tombol Chat/Klasemen -->
-        <div class="flex flex-wrap items-start justify-between gap-2">
-            
-            <!-- Kartu Status Pembalap -->
-            <div class="bg-slate-900/90 backdrop-blur-md border-2 border-slate-700 rounded-2xl px-3.5 py-2 shadow-xl pointer-events-auto flex items-center gap-3 sm:gap-4">
-                <div>
-                    <div class="flex items-center gap-1.5 text-[10px] uppercase font-bold text-sky-400">
-                        <span>Room: <span id="hud-room-code" class="text-amber-300">SOLO</span></span>
-                        <span class="text-slate-600">•</span>
-                        <span id="hud-level-badge" class="bg-indigo-600/80 text-white px-1.5 py-0.5 rounded">LV 1</span>
+    <div id="hud-race" class="hidden fixed inset-0 pointer-events-none z-10 flex flex-col justify-between safe-hud">
+
+        <!-- BARIS ATAS: HUD Ringkas (Peringkat+Jarak, Progres Soal+Skor, & Drawer Chat/Klasemen) -->
+        <div class="w-full space-y-1.5">
+            <div class="flex items-center justify-between gap-1.5 sm:gap-3">
+
+                <!-- Kartu Status Pembalap (Peringkat + Jarak + Skor + Progres Soal) -->
+                <div class="bg-slate-900/90 backdrop-blur-md border-2 border-slate-700/90 rounded-2xl px-2.5 py-1.5 sm:px-4 sm:py-2 shadow-xl pointer-events-auto flex items-center gap-2 sm:gap-3.5">
+                    <div>
+                        <div class="flex items-center gap-1 text-[10px] uppercase font-bold text-sky-400 leading-none">
+                            <span id="hud-level-badge" class="bg-indigo-600 text-white px-1.5 py-0.5 rounded">LV 1</span>
+                            <span id="hud-room-code" class="text-amber-300">SOLO</span>
+                        </div>
+                        <div id="hud-player-name" class="font-game text-xs sm:text-base font-bold text-white truncate max-w-[76px] sm:max-w-[130px] mt-0.5">Siswa</div>
                     </div>
-                    <div id="hud-player-name" class="font-game text-sm sm:text-base font-bold text-white truncate max-w-[120px]">Siswa</div>
+
+                    <div class="h-7 w-[1px] bg-slate-700"></div>
+
+                    <div class="text-center">
+                        <div class="text-[9px] sm:text-[10px] uppercase text-slate-400 font-bold leading-none">Posisi</div>
+                        <div id="hud-rank" class="font-game text-sm sm:text-lg font-bold text-amber-400 leading-tight">#1/1</div>
+                        <div id="hud-distance-mini" class="text-[9px] sm:text-[10px] font-bold text-sky-300 leading-none">0m</div>
+                    </div>
+
+                    <div class="h-7 w-[1px] bg-slate-700"></div>
+
+                    <div class="text-center">
+                        <div class="text-[9px] sm:text-[10px] uppercase text-slate-400 font-bold leading-none">Soal • Skor</div>
+                        <div class="font-game text-sm sm:text-lg font-bold text-emerald-400 leading-tight">
+                            <span id="hud-quiz-progress" class="text-amber-200">0/15</span> • <span id="hud-score">0</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="h-7 w-[1px] bg-slate-700"></div>
-                <div class="text-center">
-                    <div class="text-[10px] uppercase text-slate-400 font-bold">Peringkat</div>
-                    <div id="hud-rank" class="font-game text-base sm:text-lg font-bold text-amber-400">#1 / 1</div>
+
+                <!-- Bar Progres Jarak (Desktop & Tablet) -->
+                <div class="hidden md:flex flex-col flex-1 max-w-md bg-slate-900/90 backdrop-blur-md border-2 border-slate-700 rounded-2xl px-4 py-2 shadow-xl">
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                        <span id="hud-circuit-title" class="text-sky-300">Sirkuit Desa Pancasila</span>
+                        <span id="hud-distance-text" class="text-amber-300">0m / 5200m</span>
+                        <span class="text-emerald-400">FINIS 🏁</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                        <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-sky-400 via-amber-400 to-emerald-400 transition-all duration-150" style="width: 0%"></div>
+                    </div>
                 </div>
-                <div class="h-7 w-[1px] bg-slate-700"></div>
-                <div class="text-center">
-                    <div class="text-[10px] uppercase text-slate-400 font-bold">Skor PPKn</div>
-                    <div id="hud-score" class="font-game text-base sm:text-lg font-bold text-emerald-400">0</div>
+
+                <!-- Tombol Buka/Tutup Klasemen & Live Chat -->
+                <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+                    <button id="btn-toggle-leaderboard" type="button" aria-label="Buka Klasemen" class="btn-3d bg-slate-800/95 active:bg-slate-700 text-white font-game font-bold px-2.5 py-2 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm border-b-4 border-slate-950 flex items-center gap-1">
+                        <span class="text-sm sm:text-base">🏆</span>
+                        <span class="hidden sm:inline">Klasemen</span>
+                    </button>
+                    <button id="btn-toggle-chat" type="button" aria-label="Buka Chat Kelas" class="btn-3d relative bg-indigo-600 active:bg-indigo-500 text-white font-game font-bold px-2.5 py-2 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm border-b-4 border-indigo-800 flex items-center gap-1">
+                        <span class="text-sm sm:text-base">💬</span>
+                        <span class="hidden xs:inline sm:inline">Chat</span>
+                        <span id="chat-unread-badge" class="hidden absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-white">!</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Bar Progres Jarak Menuju Finis -->
-            <div class="hidden md:flex flex-col flex-1 max-w-md bg-slate-900/90 backdrop-blur-md border-2 border-slate-700 rounded-2xl px-4 py-2 shadow-xl">
-                <div class="flex justify-between text-[11px] font-bold mb-1">
-                    <span id="hud-circuit-title" class="text-sky-300">Sirkuit Desa Pancasila</span>
-                    <span id="hud-distance-text" class="text-amber-300">0m / 900m</span>
-                    <span class="text-emerald-400">FINIS 🏁</span>
-                </div>
-                <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                    <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-sky-400 via-amber-400 to-emerald-400 transition-all duration-150" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <!-- Tombol Buka/Tutup Klasemen & Live Chat -->
-            <div class="flex items-center gap-2 pointer-events-auto">
-                <button id="btn-toggle-leaderboard" type="button" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-game font-bold px-3 py-2 rounded-xl text-xs sm:text-sm border-b-4 border-slate-950 flex items-center gap-1.5">
-                    <span>🏆</span>
-                    <span class="hidden sm:inline">Klasemen</span>
-                </button>
-                <button id="btn-toggle-chat" type="button" class="btn-3d relative bg-indigo-600 hover:bg-indigo-500 text-white font-game font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm border-b-4 border-indigo-800 flex items-center gap-1.5">
-                    <span>💬</span>
-                    <span>Chat Kelas</span>
-                    <span id="chat-unread-badge" class="hidden absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border border-white">!</span>
-                </button>
+            <!-- Bar Progres Mini Khusus HP Android (Tipis di bawah HUD atas) -->
+            <div class="md:hidden w-full bg-slate-900/80 rounded-full h-2 overflow-hidden border border-slate-700/80 shadow">
+                <div id="hud-progress-bar-mobile" class="h-full bg-gradient-to-r from-sky-400 via-amber-400 to-emerald-400 transition-all duration-150" style="width: 0%"></div>
             </div>
         </div>
 
-        <!-- AREA TENGAH: Klasemen Live, Countdown/Banner Feedback, & Panel Live Chat -->
-        <div class="relative flex-1 flex items-center justify-between my-2 overflow-hidden">
-            
-            <!-- Kiri: Mini Klasemen Live Top 10 -->
-            <div id="panel-leaderboard" class="hidden sm:flex flex-col w-56 max-h-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-xl pointer-events-auto">
-                <div class="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-2">
-                    <span class="font-game text-xs font-bold text-amber-400">🏆 TOP 10 PEMBALAP</span>
-                    <span id="hud-total-players" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">1/40</span>
+        <!-- AREA TENGAH: Klasemen Live, Countdown/Banner Feedback, & Drawer Live Chat -->
+        <div class="relative flex-1 flex items-center justify-between my-1.5 overflow-hidden">
+
+            <!-- Kiri: Mini Klasemen Live Top 10 (Collapsible Drawer di HP) -->
+            <div id="panel-leaderboard" class="hidden sm:flex flex-col w-52 sm:w-56 max-h-[260px] sm:max-h-full bg-slate-900/92 backdrop-blur-md border-2 border-slate-700/90 rounded-2xl p-2.5 sm:p-3 shadow-2xl pointer-events-auto z-20">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-1.5">
+                    <span class="font-game text-xs font-bold text-amber-400">🏆 KLASEMEN LIVE</span>
+                    <div class="flex items-center gap-1.5">
+                        <span id="hud-total-players" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">1/40</span>
+                        <button id="btn-close-leaderboard" type="button" class="sm:hidden text-slate-300 text-xs font-bold px-1.5 py-0.5 rounded bg-slate-800">✕</button>
+                    </div>
                 </div>
-                <div id="leaderboard-list" class="space-y-1 overflow-y-auto text-xs pr-1">
+                <div id="leaderboard-list" class="space-y-1 overflow-y-auto text-xs pr-0.5">
                     <!-- Diisi real-time -->
                 </div>
             </div>
 
             <!-- Tengah: Countdown & Banner Feedback -->
-            <div class="flex-1 flex flex-col items-center justify-start pt-2 pointer-events-none px-2">
-                <div id="race-countdown" class="hidden font-game text-6xl sm:text-8xl font-bold text-amber-400 drop-shadow-[0_5px_5px_rgba(0,0,0,0.85)] animate-bounce">
+            <div class="flex-1 flex flex-col items-center justify-start pt-1 pointer-events-none px-2">
+                <div id="race-countdown" class="hidden font-game text-6xl sm:text-8xl font-bold text-amber-400 drop-shadow-[0_5px_6px_rgba(0,0,0,0.9)] animate-bounce">
                     3
                 </div>
-                <div id="race-feedback-banner" class="hidden max-w-md text-center px-4 py-2.5 rounded-2xl font-game text-sm sm:text-base font-bold shadow-2xl border-2 animate-pop">
+                <div id="race-feedback-banner" class="hidden max-w-xs sm:max-w-md text-center px-3.5 py-2 rounded-2xl font-game text-xs sm:text-base font-bold shadow-2xl border-2 animate-pop">
                 </div>
             </div>
 
-            <!-- Kanan: Panel Live Chatting Kelas -->
-            <div id="panel-chat" class="flex flex-col w-72 sm:w-80 h-full max-h-[360px] bg-slate-900/92 backdrop-blur-md border-2 border-indigo-500/60 rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
-                <div class="bg-indigo-600/90 px-3 py-2 flex items-center justify-between border-b border-indigo-400/30">
+            <!-- Kanan / Drawer Bawah di HP: Panel Live Chatting Kelas -->
+            <div id="panel-chat" class="hidden sm:flex flex-col fixed sm:static inset-x-2.5 bottom-24 sm:inset-auto w-auto sm:w-80 h-56 sm:h-full sm:max-h-[340px] bg-slate-900/95 backdrop-blur-md border-2 border-indigo-500/70 rounded-2xl shadow-2xl pointer-events-auto overflow-hidden z-20">
+                <div class="bg-indigo-600/95 px-3 py-1.5 sm:py-2 flex items-center justify-between border-b border-indigo-400/30">
                     <div class="flex items-center gap-1.5">
                         <span class="text-sm">💬</span>
                         <span class="font-game text-xs sm:text-sm font-bold text-white">Chat Kelas 6 (Ramah Anak)</span>
                     </div>
-                    <button id="btn-close-chat" type="button" class="text-white/80 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded bg-black/20">✕</button>
+                    <button id="btn-close-chat" type="button" class="text-white hover:text-amber-200 text-xs font-bold px-2 py-0.5 rounded bg-black/25">✕</button>
                 </div>
 
                 <!-- Daftar Pesan Chat -->
-                <div id="chat-messages" class="flex-1 p-2.5 overflow-y-auto space-y-1.5 text-xs">
-                    <div class="bg-indigo-950/70 text-indigo-200 p-2 rounded-xl text-[11px] border border-indigo-500/20">
-                        👋 Selamat datang di Chat Kelas! Saling semangati dengan bahasa yang sopan ya!
+                <div id="chat-messages" class="flex-1 p-2 overflow-y-auto space-y-1.5 text-xs">
+                    <div class="bg-indigo-950/75 text-indigo-200 p-2 rounded-xl text-[11px] border border-indigo-500/20">
+                        👋 Saling semangati teman sekelas dengan kata-kata yang sopan ya!
                     </div>
                 </div>
 
                 <!-- Stiker Semangat Instan -->
-                <div class="px-2 py-1.5 bg-slate-950/75 border-t border-slate-800 flex gap-1 overflow-x-auto">
-                    <button type="button" class="quick-chat-btn shrink-0 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Semangat! 🔥">Semangat! 🔥</button>
-                    <button type="button" class="quick-chat-btn shrink-0 bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Ayo maju! 🚀">Ayo maju! 🚀</button>
-                    <button type="button" class="quick-chat-btn shrink-0 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Merdeka! 🇮🇩">Merdeka! 🇮🇩</button>
-                    <button type="button" class="quick-chat-btn shrink-0 bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 border border-sky-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Keren! 👏">Keren! 👏</button>
+                <div class="px-2 py-1.5 bg-slate-950/85 border-t border-slate-800 flex gap-1.5 overflow-x-auto no-scrollbar">
+                    <button type="button" class="quick-chat-btn shrink-0 bg-emerald-600/35 active:bg-emerald-600/60 text-emerald-200 border border-emerald-500/40 rounded-lg px-2.5 py-1 text-[11px] font-semibold" data-msg="Semangat! 🔥">Semangat! 🔥</button>
+                    <button type="button" class="quick-chat-btn shrink-0 bg-amber-600/35 active:bg-amber-600/60 text-amber-200 border border-amber-500/40 rounded-lg px-2.5 py-1 text-[11px] font-semibold" data-msg="Ayo maju! 🚀">Ayo maju! 🚀</button>
+                    <button type="button" class="quick-chat-btn shrink-0 bg-rose-600/35 active:bg-rose-600/60 text-rose-200 border border-rose-500/40 rounded-lg px-2.5 py-1 text-[11px] font-semibold" data-msg="Merdeka! 🇮🇩">Merdeka! 🇮🇩</button>
+                    <button type="button" class="quick-chat-btn shrink-0 bg-sky-600/35 active:bg-sky-600/60 text-sky-200 border border-sky-500/40 rounded-lg px-2.5 py-1 text-[11px] font-semibold" data-msg="Hebat! 👏">Hebat! 👏</button>
                 </div>
 
                 <!-- Form Input Pesan -->
-                <form id="chat-form" class="p-2 bg-slate-950 border-t border-slate-800 flex gap-1.5">
-                    <input id="chat-input" type="text" maxlength="80" placeholder="Tulis pesan sopan..." 
+                <form id="chat-form" class="p-1.5 sm:p-2 bg-slate-950 border-t border-slate-800 flex gap-1.5">
+                    <input id="chat-input" type="text" maxlength="80" autocomplete="off" placeholder="Tulis pesan sopan..."
                            class="flex-1 bg-slate-800 border border-slate-700 focus:border-indigo-400 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
-                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-3 py-1.5 rounded-xl text-xs">
+                    <button type="submit" class="bg-indigo-500 active:bg-indigo-400 text-white font-bold px-3 py-1.5 rounded-xl text-xs">
                         Kirim
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- BARIS BAWAH: Kontrol Belok Kiri/Kanan & Speedometer -->
+        <!-- BARIS BAWAH: Kontrol Sentuh Ergonomis KIRI/KANAN (66px) & Speedometer -->
         <div class="flex items-end justify-between gap-2">
-            <button id="btn-steer-left" type="button" class="btn-3d pointer-events-auto bg-slate-900/90 active:bg-sky-500 text-white border-2 border-slate-600 w-16 h-16 sm:w-20 sm:h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl">
-                ◀
+            <button id="btn-steer-left" type="button" aria-label="Belok Kiri"
+                    class="btn-3d pointer-events-auto bg-slate-900/92 active:bg-sky-500 text-white border-2 border-slate-500/90 min-w-[66px] h-[66px] sm:w-24 sm:h-16 px-3 rounded-2xl flex flex-col items-center justify-center shadow-2xl select-none">
+                <span class="text-xl sm:text-2xl font-bold leading-none">◀</span>
+                <span class="font-game text-[10px] font-bold tracking-wider text-sky-300 mt-0.5">KIRI</span>
             </button>
 
-            <div id="speed-panel" class="bg-slate-900/90 backdrop-blur-md border-2 border-slate-700 rounded-2xl px-4 py-2 text-center shadow-xl">
-                <div class="text-[10px] uppercase font-bold text-slate-400">Kecepatan Mobil</div>
+            <div id="speed-panel" class="bg-slate-900/90 backdrop-blur-md border-2 border-slate-700/90 rounded-2xl px-3.5 py-1.5 sm:px-5 sm:py-2 text-center shadow-xl">
                 <div class="flex items-baseline justify-center gap-1">
-                    <span id="hud-speed" class="font-game text-2xl sm:text-3xl font-bold text-sky-400">85</span>
-                    <span class="text-xs font-bold text-slate-400">km/j</span>
+                    <span id="hud-speed" class="font-game text-xl sm:text-3xl font-bold text-sky-400 leading-none">85</span>
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-400">km/j</span>
                 </div>
-                <div id="hud-status-pill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 mt-0.5">
-                    Normal (Gunakan ◀ / ▶ atau A / D)
+                <div id="hud-status-pill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 mt-1 truncate max-w-[165px] sm:max-w-none">
+                    Geser layar atau ketuk KIRI/KANAN
                 </div>
             </div>
 
-            <button id="btn-steer-right" type="button" class="btn-3d pointer-events-auto bg-slate-900/90 active:bg-sky-500 text-white border-2 border-slate-600 w-16 h-16 sm:w-20 sm:h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl">
-                ▶
+            <button id="btn-steer-right" type="button" aria-label="Belok Kanan"
+                    class="btn-3d pointer-events-auto bg-slate-900/92 active:bg-sky-500 text-white border-2 border-slate-500/90 min-w-[66px] h-[66px] sm:w-24 sm:h-16 px-3 rounded-2xl flex flex-col items-center justify-center shadow-2xl select-none">
+                <span class="text-xl sm:text-2xl font-bold leading-none">▶</span>
+                <span class="font-game text-[10px] font-bold tracking-wider text-sky-300 mt-0.5">KANAN</span>
             </button>
         </div>
     </div>
 
     <!-- ===================================================================== -->
-    <!-- 3. MODAL KUIS PPKn KELAS 6 SD (MUNCUL DI GERBANG CHECKPOINT)          -->
+    <!-- 3. MODAL KUIS PPKn KELAS 6 SD (TOMBOL OPSI LEGA UNTUK JARI ANDROID)   -->
     <!-- ===================================================================== -->
-    <div id="modal-quiz" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
-        <div class="max-w-xl w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-5 sm:p-6 shadow-2xl animate-pop">
-            <div class="flex items-center justify-between gap-2 mb-3">
-                <span id="quiz-topic-badge" class="bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-bold px-3 py-1 rounded-full">
-                    Nilai-Nilai Pancasila
+    <div id="modal-quiz" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center safe-modal overflow-y-auto">
+        <div class="max-w-xl w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-4 sm:p-6 shadow-2xl my-auto animate-pop">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <span id="quiz-topic-badge" class="bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-full">
+                    Soal 1/15 • Nilai Pancasila
                 </span>
-                <span class="font-game text-xs sm:text-sm font-bold text-sky-300">⚡ Jawab Benar = TURBO!</span>
+                <span class="font-game text-[11px] sm:text-sm font-bold text-sky-300">⚡ Benar = TURBO!</span>
             </div>
 
-            <h2 id="quiz-question" class="font-game text-lg sm:text-xl font-bold text-white leading-snug mb-4">
+            <h2 id="quiz-question" class="font-game text-base sm:text-xl font-bold text-white leading-snug mb-3.5">
                 Pertanyaan PPKn akan muncul di sini...
             </h2>
 
-            <div id="quiz-options" class="space-y-2.5">
+            <div id="quiz-options" class="space-y-2 sm:space-y-2.5">
                 <!-- Pilihan jawaban A, B, C, D -->
             </div>
 
-            <div id="quiz-explanation-box" class="hidden mt-4 p-3.5 rounded-2xl border text-xs sm:text-sm leading-relaxed">
+            <div id="quiz-explanation-box" class="hidden mt-3.5 p-3 rounded-2xl border text-xs sm:text-sm leading-relaxed">
             </div>
         </div>
     </div>
@@ -375,51 +425,51 @@
     <!-- ===================================================================== -->
     <!-- 4. LAYAR PODIUM AKHIR & REKAP SKOR PPKn KELAS                         -->
     <!-- ===================================================================== -->
-    <div id="screen-podium" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-        <div class="max-w-3xl w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-5 sm:p-7 shadow-2xl my-auto animate-pop">
-            <div class="text-center mb-5">
-                <div class="text-5xl mb-2">🏆🇮🇩🏆</div>
-                <h2 class="font-game text-2xl sm:text-4xl font-bold text-amber-400">GARIS FINIS & PODIUM JUARA!</h2>
-                <p id="podium-subtitle" class="text-xs sm:text-sm text-slate-300 mt-1">Hebat! Kamu telah menyelesaikan balapan sekaligus mengasah wawasan PPKn Kelas 6 SD.</p>
+    <div id="screen-podium" class="hidden fixed inset-0 z-50 bg-slate-950/88 backdrop-blur-md flex items-start sm:items-center justify-center safe-modal overflow-y-auto">
+        <div class="max-w-3xl w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-4 sm:p-7 shadow-2xl my-auto animate-pop">
+            <div class="text-center mb-4">
+                <div class="text-4xl sm:text-5xl mb-1.5">🏆🇮🇩🏆</div>
+                <h2 class="font-game text-xl sm:text-4xl font-bold text-amber-400">GARIS FINIS & PODIUM JUARA!</h2>
+                <p id="podium-subtitle" class="text-xs sm:text-sm text-slate-300 mt-1">Hebat! Kamu telah menyelesaikan balapan dan mengasah wawasan PPKn Kelas 6 SD.</p>
             </div>
 
             <!-- Podium Juara 1, 2, 3 -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-4 items-end mb-6 pt-4">
-                <div class="bg-slate-800/90 border-2 border-slate-400 rounded-2xl p-3 text-center">
-                    <div class="text-2xl sm:text-3xl mb-1">🥈</div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase">Juara 2</div>
-                    <div id="podium-2-name" class="font-game text-sm sm:text-base font-bold text-white truncate">-</div>
-                    <div id="podium-2-score" class="text-xs font-bold text-sky-300 mt-0.5">0 Poin</div>
+            <div class="grid grid-cols-3 gap-1.5 sm:gap-4 items-end mb-5 pt-2">
+                <div class="bg-slate-800/90 border-2 border-slate-400 rounded-2xl p-2 sm:p-3 text-center">
+                    <div class="text-xl sm:text-3xl mb-0.5">🥈</div>
+                    <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Juara 2</div>
+                    <div id="podium-2-name" class="font-game text-xs sm:text-base font-bold text-white truncate">-</div>
+                    <div id="podium-2-score" class="text-[10px] sm:text-xs font-bold text-sky-300 mt-0.5">0 Poin</div>
                 </div>
-                <div class="bg-gradient-to-b from-amber-500/30 to-slate-800 border-2 border-amber-400 rounded-2xl p-4 text-center transform -translate-y-2 shadow-xl">
-                    <div class="text-3xl sm:text-4xl mb-1">🥇</div>
-                    <div class="text-xs font-bold text-amber-300 uppercase">Juara 1</div>
-                    <div id="podium-1-name" class="font-game text-base sm:text-xl font-bold text-amber-300 truncate">-</div>
-                    <div id="podium-1-score" class="text-xs sm:text-sm font-bold text-emerald-300 mt-0.5">0 Poin</div>
+                <div class="bg-gradient-to-b from-amber-500/30 to-slate-800 border-2 border-amber-400 rounded-2xl p-2.5 sm:p-4 text-center transform -translate-y-1.5 shadow-xl">
+                    <div class="text-2xl sm:text-4xl mb-0.5">🥇</div>
+                    <div class="text-[10px] sm:text-xs font-bold text-amber-300 uppercase">Juara 1</div>
+                    <div id="podium-1-name" class="font-game text-sm sm:text-xl font-bold text-amber-300 truncate">-</div>
+                    <div id="podium-1-score" class="text-[10px] sm:text-sm font-bold text-emerald-300 mt-0.5">0 Poin</div>
                 </div>
-                <div class="bg-slate-800/90 border-2 border-amber-700 rounded-2xl p-3 text-center">
-                    <div class="text-2xl sm:text-3xl mb-1">🥉</div>
-                    <div class="text-[10px] font-bold text-amber-600 uppercase">Juara 3</div>
-                    <div id="podium-3-name" class="font-game text-sm sm:text-base font-bold text-white truncate">-</div>
-                    <div id="podium-3-score" class="text-xs font-bold text-sky-300 mt-0.5">0 Poin</div>
+                <div class="bg-slate-800/90 border-2 border-amber-700 rounded-2xl p-2 sm:p-3 text-center">
+                    <div class="text-xl sm:text-3xl mb-0.5">🥉</div>
+                    <div class="text-[9px] sm:text-[10px] font-bold text-amber-600 uppercase">Juara 3</div>
+                    <div id="podium-3-name" class="font-game text-xs sm:text-base font-bold text-white truncate">-</div>
+                    <div id="podium-3-score" class="text-[10px] sm:text-xs font-bold text-sky-300 mt-0.5">0 Poin</div>
                 </div>
             </div>
 
             <!-- Tabel Rekap Nilai PPKn Seluruh Peserta -->
-            <div class="bg-slate-950/80 rounded-2xl border border-slate-800 p-3.5 mb-5">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="text-xs font-bold text-sky-400 uppercase">📊 Rekap Hasil Balap & Skor PPKn Kelas</div>
-                    <span id="podium-level-tag" class="text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2.5 py-0.5 rounded-full">Level 1</span>
+            <div class="bg-slate-950/85 rounded-2xl border border-slate-800 p-3 mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-1 mb-2">
+                    <div class="text-[11px] sm:text-xs font-bold text-sky-400 uppercase">📊 Rekap Hasil Balap & Skor PPKn</div>
+                    <span id="podium-level-tag" class="text-[10px] sm:text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full">Level 1</span>
                 </div>
-                <div class="max-h-44 overflow-y-auto">
+                <div class="max-h-40 overflow-y-auto">
                     <table class="w-full text-left text-xs">
                         <thead class="text-slate-400 border-b border-slate-800">
                             <tr>
-                                <th class="py-1.5 px-2">Pos</th>
-                                <th class="py-1.5 px-2">Nama Siswa</th>
-                                <th class="py-1.5 px-2">Mobil</th>
-                                <th class="py-1.5 px-2 text-right">Jawaban Benar</th>
-                                <th class="py-1.5 px-2 text-right">Skor PPKn</th>
+                                <th class="py-1.5 px-1.5">Pos</th>
+                                <th class="py-1.5 px-1.5">Nama Siswa</th>
+                                <th class="py-1.5 px-1.5 hidden sm:table-cell">Mobil</th>
+                                <th class="py-1.5 px-1.5 text-right">Benar</th>
+                                <th class="py-1.5 px-1.5 text-right">Skor</th>
                             </tr>
                         </thead>
                         <tbody id="podium-table-body" class="divide-y divide-slate-800/60">
@@ -429,11 +479,11 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap justify-center gap-3">
-                <button id="btn-back-lobby" type="button" class="btn-3d bg-slate-700 hover:bg-slate-600 text-white font-game font-bold py-3 px-5 rounded-2xl text-sm sm:text-base border-b-4 border-slate-900">
+            <div class="flex flex-col sm:flex-row justify-center gap-2.5">
+                <button id="btn-back-lobby" type="button" class="btn-3d bg-slate-700 active:bg-slate-600 text-white font-game font-bold py-3 px-5 rounded-2xl text-sm sm:text-base border-b-4 border-slate-900">
                     🏠 Kembali ke Lobi
                 </button>
-                <button id="btn-next-level" type="button" class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold py-3 px-6 rounded-2xl text-sm sm:text-base border-b-4 border-emerald-700">
+                <button id="btn-next-level" type="button" class="btn-3d bg-emerald-500 active:bg-emerald-400 text-slate-950 font-game font-bold py-3 px-6 rounded-2xl text-sm sm:text-base border-b-4 border-emerald-700">
                     Lanjut ke Level Berikutnya ➡️
                 </button>
             </div>
@@ -441,7 +491,7 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- SCRIPT UTAMA: FIREBASE v11 + 3D ENGINE + 36 SOAL PPKn KELAS 6 SD      -->
+    <!-- SCRIPT UTAMA: FIREBASE v11 + 3D ENGINE + 45 SOAL PPKn KELAS 6 SD      -->
     <!-- ===================================================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -470,7 +520,7 @@
         let isFirebaseReady = false;
 
         // =========================================================================
-        // 2. DATA 6 MOBIL BALAP NUSANTARA & 3 LEVEL SIRKUIT
+        // 2. DATA 6 MOBIL BALAP NUSANTARA & 3 LEVEL SIRKUIT DUEL PANJANG
         // =========================================================================
         const CAR_MODELS = [
             { id: 'garuda_merah',     name: 'Garuda Merah',     primary: 0xef4444, secondary: 0xffffff, emoji: '🦅' },
@@ -486,19 +536,19 @@
                 id: 1,
                 shortName: "Level 1",
                 title: "Desa Pancasila",
-                fullTitle: "Level 1: Desa Pancasila (Sila 1–5)",
+                fullTitle: "Level 1: Desa Pancasila (Nilai Sila 1–5)",
                 emoji: "🌄",
-                gatesCount: 6,
-                trackLength: 900,
-                baseSpeed: 27,
-                botSpeedRange: [21, 26],
-                hasCones: false,
-                hasBoostPads: false,
+                gatesCount: 15,
+                trackLength: 5200,
+                baseSpeed: 29,
+                botSpeedRange: [24, 30],
+                obstacleCount: 22,
+                boostPadCount: 10,
                 skyColor: 0x38bdf8,
                 fogColor: 0x7dd3fc,
                 groundColor: 0x22c55e,
                 roadColor: 0x334155,
-                ambientIntensity: 0.72
+                ambientIntensity: 0.75
             },
             2: {
                 id: 2,
@@ -506,17 +556,17 @@
                 title: "Kota Konstitusi",
                 fullTitle: "Level 2: Kota Konstitusi (Hak & Kewajiban UUD 1945)",
                 emoji: "🌇",
-                gatesCount: 8,
-                trackLength: 1200,
-                baseSpeed: 29,
-                botSpeedRange: [24, 29],
-                hasCones: true,
-                hasBoostPads: false,
+                gatesCount: 15,
+                trackLength: 5600,
+                baseSpeed: 31,
+                botSpeedRange: [26, 32],
+                obstacleCount: 30,
+                boostPadCount: 12,
                 skyColor: 0xf97316,
                 fogColor: 0xfdba74,
                 groundColor: 0x65a30d,
                 roadColor: 0x1e293b,
-                ambientIntensity: 0.68
+                ambientIntensity: 0.70
             },
             3: {
                 id: 3,
@@ -524,22 +574,23 @@
                 title: "Nusantara Garuda",
                 fullTitle: "Level 3: Nusantara Garuda (Persatuan & Bhinneka Tunggal Ika)",
                 emoji: "🌃",
-                gatesCount: 10,
-                trackLength: 1500,
-                baseSpeed: 31,
-                botSpeedRange: [26, 32],
-                hasCones: true,
-                hasBoostPads: true,
+                gatesCount: 15,
+                trackLength: 6000,
+                baseSpeed: 33,
+                botSpeedRange: [28, 35],
+                obstacleCount: 38,
+                boostPadCount: 15,
                 skyColor: 0x090d16,
                 fogColor: 0x1e1b4b,
                 groundColor: 0x0f172a,
                 roadColor: 0x111827,
-                ambientIntensity: 0.55
+                ambientIntensity: 0.58
             }
         };
 
         // =========================================================================
-        // 3. BANK SOAL LENGKAP PPKn KELAS 6 SD (36 SOAL = 12 SOAL PER LEVEL)
+        // 3. BANK SOAL LENGKAP PPKn KELAS 6 SD (45 SOAL = 15 SOAL PER LEVEL)
+        //    Setiap pertanyaan akan diacak posisi opsi A, B, C, D secara merata!
         // =========================================================================
         const BANK_SOAL_BY_LEVEL = {
             1: [
@@ -548,21 +599,21 @@
                     soal: "Ketika temanmu yang berbeda agama sedang berdoa sebelum makan di kantin sekolah, sikap yang paling tepat sesuai sila pertama Pancasila adalah...",
                     opsi: ["Menunggu dengan tenang dan menghormatinya", "Mengajaknya mengobrol agar cepat selesai", "Menertawakan cara berdoanya", "Pura-pura tidak melihat dan mengejeknya"],
                     benar: 0,
-                    penjelasan: "Sila ke-1 (Ketuhanan Yang Maha Esa) mengajarkan kita untuk saling menghormati kebebasan beribadah antarumat beragama."
+                    penjelasan: "Sila ke-1 (Ketuhanan Yang Maha Esa) mengajarkan kita saling menghormati kebebasan beribadah antarumat beragama."
                 },
                 {
                     topik: "Sila Ke-2 Pancasila",
                     soal: "Rani melihat adik kelas terjatuh di halaman sekolah hingga lututnya terluka. Tindakan Rani yang mencerminkan sila kedua Pancasila adalah...",
                     opsi: ["Segera menolong dan mengantarnya ke UKS", "Memanggil teman lain untuk menontonnya", "Membiarkannya menangis sendirian", "Menyalahkannya karena berlari terlalu cepat"],
                     benar: 0,
-                    penjelasan: "Sila ke-2 (Kemanusiaan yang Adil dan Beradab) mendorong kita memiliki rasa empati dan gemar menolong sesama."
+                    penjelasan: "Sila ke-2 (Kemanusiaan yang Adil dan Beradab) mendorong kita memiliki empati dan gemar menolong sesama."
                 },
                 {
                     topik: "Sila Ke-3 Pancasila",
-                    soal: "Di kelas 6 terdapat siswa dari berbagai suku seperti Jawa, Batak, Bugis, dan Papua. Sikap yang memperkuat persatuan sesuai sila ketiga adalah...",
+                    soal: "Di kelas 6 terdapat siswa dari suku Jawa, Batak, Bugis, dan Papua. Sikap yang memperkuat persatuan sesuai sila ketiga adalah...",
                     opsi: ["Berteman akrab dengan semua tanpa membedakan suku", "Hanya mau berkelompok dengan teman satu daerah", "Membanggakan suku sendiri dan merendahkan suku lain", "Menghindari teman yang berbeda logat bicara"],
                     benar: 0,
-                    penjelasan: "Sila ke-3 (Persatuan Indonesia) mengutamakan kerukunan, persatuan, dan cinta tanah air di atas perbedaan suku."
+                    penjelasan: "Sila ke-3 (Persatuan Indonesia) mengutamakan kerukunan dan persatuan di atas perbedaan suku bangsa."
                 },
                 {
                     topik: "Sila Ke-4 Pancasila",
@@ -573,59 +624,80 @@
                 },
                 {
                     topik: "Sila Ke-5 Pancasila",
-                    soal: "Contoh perilaku di lingkungan rumah yang mencerminkan nilai keadilan sosial (sila kelima Pancasila) adalah...",
+                    soal: "Contoh perilaku di rumah yang mencerminkan nilai keadilan sosial (sila kelima Pancasila) adalah...",
                     opsi: ["Membagi tugas membersihkan rumah secara adil kepada semua anggota keluarga", "Menyuruh adik mengerjakan semua pekerjaan rumah", "Menghabiskan uang jajan untuk membeli barang mewah", "Membiarkan lampu dan keran air menyala terus"],
                     benar: 0,
-                    penjelasan: "Sila ke-5 (Keadilan Sosial bagi Seluruh Rakyat Indonesia) menekankan pembagian tugas yang adil, hemat, dan menghargai hak orang lain."
+                    penjelasan: "Sila ke-5 menekankan pembagian tugas yang adil, sikap hemat, serta menghargai hak anggota keluarga."
                 },
                 {
                     topik: "Sila Ke-1 Pancasila",
-                    soal: "Menjaga kerukunan antarwarga yang berbeda keyakinan saat perayaan hari besar keagamaan di kampung merupakan pengamalan Pancasila sila ke-...",
-                    opsi: ["Kesatu", "Kedua", "Ketiga", "Keempat"],
+                    soal: "Menjaga ketenangan lingkungan saat warga umat Hindu melaksanakan Hari Raya Nyepi merupakan wujud pengamalan Pancasila sila ke-...",
+                    opsi: ["Kesatu (Ketuhanan Yang Maha Esa)", "Kedua (Kemanusiaan)", "Keempat (Kerakyatan)", "Kelima (Keadilan Sosial)"],
                     benar: 0,
-                    penjelasan: "Kerukunan dan toleransi antarumat beragama adalah wujud nyata sila pertama: Ketuhanan Yang Maha Esa."
+                    penjelasan: "Toleransi dan menjaga ketertiban saat umat lain merayakan hari besar keagamaannya adalah inti Sila ke-1."
                 },
                 {
-                    topik: "Sila Ke-2 Pancasila",
-                    soal: "Siswa kelas 6 mengumpulkan sumbangan buku dan pakaian layak pakai untuk korban banjir. Kegiatan ini sesuai dengan nilai sila kedua karena...",
-                    opsi: ["Menjunjung tinggi nilai kemanusiaan dan kepedulian", "Ingin dipuji oleh kepala sekolah", "Terpaksa karena diwajibkan ketua kelas", "Mengharapkan imbalan dari korban banjir"],
+                    topik: "Anti Perundungan (Bullying)",
+                    soal: "Mengejek fisik atau kekurangan teman di sekolah bertentangan dengan nilai kemanusiaan pada Pancasila sila ke-...",
+                    opsi: ["Kedua", "Kesatu", "Keempat", "Ketiga"],
                     benar: 0,
-                    penjelasan: "Membantu korban bencana dengan tulus adalah wujud kepedulian terhadap penderitaan sesama manusia (Sila ke-2)."
+                    penjelasan: "Sila ke-2 mengajarkan agar kita memperlakukan sesama manusia sesuai harkat dan martabatnya tanpa perundungan."
                 },
                 {
                     topik: "Sila Ke-3 Pancasila",
-                    soal: "Mengikuti upacara bendera setiap hari Senin dengan khidmat serta bangga memakai batik produk dalam negeri mencerminkan pengamalan sila ke-...",
+                    soal: "Mengikuti upacara bendera hari Senin dengan khidmat serta bangga memakai batik produk dalam negeri mencerminkan pengamalan sila ke-...",
                     opsi: ["Ketiga (Persatuan Indonesia)", "Pertama (Ketuhanan Yang Maha Esa)", "Keempat (Kerakyatan)", "Kelima (Keadilan Sosial)"],
                     benar: 0,
-                    penjelasan: "Rasa cinta tanah air, menghormati simbol negara, dan bangga terhadap karya bangsa merupakan nilai Sila ke-3."
+                    penjelasan: "Cinta tanah air, menghormati simbol negara, dan bangga terhadap karya bangsa merupakan nilai Sila ke-3."
                 },
                 {
-                    topik: "Sila Ke-4 Pancasila",
+                    topik: "Musyawarah Mufakat",
                     soal: "Dalam rapat diskusi kelompok di kelas, usulmu tidak terpilih sebagai keputusan akhir. Sikapmu yang sesuai sila keempat adalah...",
                     opsi: ["Menerima dengan lapang dada dan ikut melaksanakan hasil keputusan", "Marah dan menolak bekerja sama dengan kelompok", "Mengejek keputusan yang sudah disepakati bersama", "Keluar dari kelompok tanpa pamit"],
                     benar: 0,
-                    penjelasan: "Menghormati dan melaksanakan hasil keputusan musyawarah dengan ikhlas adalah ciri utama pengamalan Sila ke-4."
+                    penjelasan: "Menghormati dan melaksanakan hasil keputusan musyawarah dengan ikhlas adalah ciri pengamalan Sila ke-4."
                 },
                 {
                     topik: "Sila Ke-5 Pancasila",
                     soal: "Menghargai hasil gambar teman dan tidak mencoret-coret karya orang lain di majalah dinding sekolah merupakan pengamalan sila ke-...",
                     opsi: ["Kelima", "Kesatu", "Kedua", "Ketiga"],
                     benar: 0,
-                    penjelasan: "Menghargai hasil karya orang lain adalah salah satu butir pengamalan Sila ke-5 Pancasila."
+                    penjelasan: "Menghargai hasil karya orang lain merupakan salah satu butir pengamalan Sila ke-5 Pancasila."
                 },
                 {
                     topik: "Hubungan Antarsila Pancasila",
-                    soal: "Kegiatan kerja bakti membersihkan selokan kampung bersama-sama tanpa membedakan agama dan status sosial mencerminkan perpaduan nilai sila ke-...",
-                    opsi: ["Ketiga dan Kelima", "Kesatu saja", "Keempat saja", "Tidak ada yang sesuai"],
+                    soal: "Kegiatan kerja bakti membersihkan selokan kampung bersama tanpa membedakan agama dan status sosial mencerminkan perpaduan nilai sila ke-...",
+                    opsi: ["Ketiga dan Kelima", "Kesatu saja", "Keempat saja", "Tidak ada sila yang sesuai"],
                     benar: 0,
-                    penjelasan: "Gotong royong memperkuat persatuan (Sila ke-3) sekaligus mewujudkan kesejahteraan dan keadilan bersama (Sila ke-5)."
+                    penjelasan: "Gotong royong memperkuat persatuan (Sila ke-3) sekaligus mewujudkan kesejahteraan bersama (Sila ke-5)."
                 },
                 {
-                    topik: "Sila Ke-2 Pancasila",
-                    soal: "Tidak bersikap semena-mena kepada teman yang lebih kecil dan selalu bersikap santun kepada guru maupun petugas kebersihan sekolah sesuai sila ke-...",
-                    opsi: ["Kedua", "Kesatu", "Keempat", "Ketiga"],
+                    topik: "Sikap Hemat Energi",
+                    soal: "Mematikan kipas angin dan lampu ruang kelas sebelum pulang sekolah mencerminkan sikap tidak boros sesuai nilai Pancasila sila ke-...",
+                    opsi: ["Kelima", "Kesatu", "Kedua", "Keempat"],
                     benar: 0,
-                    penjelasan: "Sila ke-2 mengajarkan bahwa setiap manusia memiliki harkat dan martabat yang sama sehingga harus dihormati."
+                    penjelasan: "Gaya hidup hemat dan tidak merugikan kepentingan umum merupakan wujud pengamalan Sila ke-5."
+                },
+                {
+                    topik: "Sila Ke-4 Pancasila",
+                    soal: "Pemilihan ketua kelas 6 dilakukan melalui pemungutan suara (voting) karena musyawarah belum mencapai kata sepakat. Cara tersebut sesuai dengan sila ke-...",
+                    opsi: ["Keempat", "Kesatu", "Kedua", "Ketiga"],
+                    benar: 0,
+                    penjelasan: "Voting secara jujur dan demokratis adalah cara sah dalam Sila ke-4 bila mufakat bulat belum tercapai."
+                },
+                {
+                    topik: "Kemanusiaan & Kepedulian",
+                    soal: "Siswa kelas 6 menggalang dana untuk membantu warga yang terdampak bencana gunung meletus. Perilaku tersebut dilandasi nilai sila ke-...",
+                    opsi: ["Kedua", "Keempat", "Kesatu", "Ketiga"],
+                    benar: 0,
+                    penjelasan: "Rasa kemanusiaan dan kepedulian terhadap penderitaan orang lain merupakan inti Sila ke-2."
+                },
+                {
+                    topik: "Nilai Dasar Pancasila",
+                    soal: "Kelima sila Pancasila merupakan satu kesatuan yang utuh dan saling menjiwai. Sila yang menjadi cahaya dan dasar moral bagi keempat sila lainnya adalah sila ke-...",
+                    opsi: ["Kesatu (Ketuhanan Yang Maha Esa)", "Ketiga (Persatuan Indonesia)", "Keempat (Kerakyatan)", "Kelima (Keadilan Sosial)"],
+                    benar: 0,
+                    penjelasan: "Sila Ketuhanan Yang Maha Esa menjadi landasan spiritual dan moral bagi pelaksanaan sila-sila berikutnya."
                 }
             ],
             2: [
@@ -641,21 +713,21 @@
                     soal: "Setelah mendapatkan hak menggunakan fasilitas perpustakaan sekolah, kewajiban utama yang harus dilakukan siswa adalah...",
                     opsi: ["Menjaga ketenangan dan mengembalikan buku tepat waktu", "Membawa pulang buku tanpa mencatatnya", "Mencoret-coret halaman buku cerita", "Makan dan minum di ruang baca perpustakaan"],
                     benar: 0,
-                    penjelasan: "Setiap hak selalu diiringi kewajiban. Menjaga fasilitas perpustakaan agar tetap rapi adalah kewajiban siswa."
+                    penjelasan: "Setiap hak selalu diiringi kewajiban. Menjaga ketertiban perpustakaan adalah kewajiban setiap siswa."
                 },
                 {
                     topik: "UUD 1945 Pasal 27 Ayat 1",
                     soal: "Segala warga negara bersamaan kedudukannya di dalam hukum dan pemerintahan dan wajib menjunjung hukum itu. Bunyi tersebut terdapat pada UUD 1945...",
                     opsi: ["Pasal 27 Ayat 1", "Pasal 29 Ayat 2", "Pasal 31 Ayat 2", "Pasal 33 Ayat 3"],
                     benar: 0,
-                    penjelasan: "Pasal 27 Ayat 1 UUD 1945 menegaskan kesamaan kedudukan warga negara di hadapan hukum serta kewajiban menaati hukum."
+                    penjelasan: "Pasal 27 Ayat 1 UUD 1945 menegaskan kesamaan kedudukan warga negara di hadapan hukum."
                 },
                 {
                     topik: "Tanggung Jawab di Lingkungan",
                     soal: "Warga Desa Sukamaju rutin mengadakan ronda malam dan menjaga kebersihan sungai. Manfaat dari pelaksanaan tanggung jawab tersebut adalah...",
                     opsi: ["Lingkungan menjadi aman, bersih, dan terhindar dari banjir", "Warga menjadi lelah dan sering bertengkar", "Hanya menguntungkan ketua RT saja", "Sungai menjadi tempat pembuangan sampah"],
                     benar: 0,
-                    penjelasan: "Melaksanakan tanggung jawab bersama menciptakan lingkungan yang aman, sehat, dan nyaman bagi seluruh warga."
+                    penjelasan: "Melaksanakan tanggung jawab bersama menciptakan lingkungan yang aman, sehat, dan nyaman."
                 },
                 {
                     topik: "UUD 1945 Pasal 29 Ayat 2",
@@ -669,7 +741,7 @@
                     soal: "Membayar pajak tepat waktu bagi warga negara yang sudah berpenghasilan merupakan kewajiban yang bermanfaat untuk...",
                     opsi: ["Membiayai pembangunan sekolah, jalan raya, dan rumah sakit", "Menambah kekayaan pribadi petugas pajak", "Mengurangi jumlah fasilitas umum negara", "Membeli kendaraan mewah pejabat"],
                     benar: 0,
-                    penjelasan: "Pajak digunakan negara untuk pembangunan fasilitas umum seperti sekolah, jembatan, dan layanan kesehatan rakyat."
+                    penjelasan: "Pajak digunakan negara untuk pembangunan fasilitas umum seperti sekolah, jembatan, dan layanan kesehatan."
                 },
                 {
                     topik: "UUD 1945 Pasal 27 Ayat 3",
@@ -683,11 +755,11 @@
                     soal: "Mendapatkan kasih sayang orang tua, makanan bergizi, serta waktu bermain yang cukup merupakan contoh...",
                     opsi: ["Hak anak di lingkungan keluarga", "Kewajiban anak kepada orang tua", "Tanggung jawab ketua RT", "Aturan lalu lintas jalan raya"],
                     benar: 0,
-                    penjelasan: "Kasih sayang, perlindungan, dan pemenuhan kebutuhan dasar adalah hak dasar setiap anak di rumah."
+                    penjelasan: "Kasih sayang, perlindungan, dan pemenuhan kebutuhan dasar adalah hak setiap anak di rumah."
                 },
                 {
                     topik: "UUD 1945 Pasal 28",
-                    soal: "Kemerdekaan berserikat dan berkumpul, mengeluarkan pikiran dengan lisan dan tulisan dijamin oleh UUD 1945 Pasal 28. Saat menyampaikan pendapat di kelas, kita wajib...",
+                    soal: "Kemerdekaan mengeluarkan pikiran dengan lisan dan tulisan dijamin oleh UUD 1945 Pasal 28. Saat menyampaikan pendapat di kelas, kita wajib...",
                     opsi: ["Menggunakan bahasa yang sopan dan tidak menyinggung teman", "Berteriak keras agar semua orang takut", "Memotong pembicaraan teman yang sedang berpendapat", "Menghina pendapat kelompok lain"],
                     benar: 0,
                     penjelasan: "Hak berpendapat harus disertai tanggung jawab moral dengan berbicara santun dan menghargai orang lain."
@@ -712,6 +784,27 @@
                     opsi: ["Mencatat pemasukan dan pengeluaran kas kelas secara jujur dan terbuka", "Menggunakan uang kas kelas untuk jajan pribadi", "Menyimpan catatan keuangan tanpa mau diperiksa", "Menghilangkan buku catatan kas kelas"],
                     benar: 0,
                     penjelasan: "Jujur dan amanah dalam mengelola kepercayaan orang lain adalah ciri warga negara yang bertanggung jawab."
+                },
+                {
+                    topik: "Macam-Macam Norma",
+                    soal: "Mengucapkan salam ketika bertamu dan menghormati orang yang lebih tua merupakan penerapan dari norma...",
+                    opsi: ["Kesopanan", "Hukum", "Lalu lintas", "Perdagangan"],
+                    benar: 0,
+                    penjelasan: "Norma kesopanan bersumber dari tata pergaulan masyarakat sehari-hari seperti bertutur kata santun."
+                },
+                {
+                    topik: "Norma Hukum",
+                    soal: "Norma yang memiliki sanksi paling tegas dan memaksa bagi pelanggarnya di kehidupan bernegara adalah norma...",
+                    opsi: ["Hukum", "Kesopanan", "Kebiasaan", "Adat istiadat"],
+                    benar: 0,
+                    penjelasan: "Norma hukum dibuat oleh lembaga negara yang berwenang dan memiliki sanksi tegas bagi pelanggarnya."
+                },
+                {
+                    topik: "Kewajiban Siswa di Sekolah",
+                    soal: "Datang ke sekolah tepat waktu, memakai seragam sesuai jadwal, dan melaksanakan piket kebersihan merupakan contoh...",
+                    opsi: ["Kewajiban siswa di sekolah", "Hak siswa setelah lulus", "Tugas kepala desa", "Larangan bagi guru"],
+                    benar: 0,
+                    penjelasan: "Menaati tata tertib sekolah dan menjaga kebersihan kelas adalah kewajiban utama seluruh siswa."
                 }
             ],
             3: [
@@ -753,7 +846,7 @@
                 {
                     topik: "Kerja Sama ASEAN",
                     soal: "Indonesia aktif bekerja sama dengan negara-negara tetangga di kawasan Asia Tenggara melalui organisasi...",
-                    opsi: ["ASEAN", "PBB saja", "OPEC", "NATO"],
+                    opsi: ["ASEAN", "OPEC", "NATO", "Uni Eropa"],
                     benar: 0,
                     penjelasan: "Indonesia merupakan salah satu negara pendiri ASEAN untuk menjaga perdamaian dan kerja sama di Asia Tenggara."
                 },
@@ -798,6 +891,27 @@
                     opsi: ["Persatuan dan kepentingan bangsa di atas kepentingan pribadi", "Keuntungan kelompok dan daerah masing-masing", "Persaingan antarpejuang di medan perang", "Bantuan penuh dari negara penjajah"],
                     benar: 0,
                     penjelasan: "Persatuan dan semangat rela berkorban demi bangsa adalah kunci keberhasilan para pahlawan meraih kemerdekaan Indonesia."
+                },
+                {
+                    topik: "Cinta Produk Indonesia",
+                    soal: "Membeli sepatu, tas, dan kain tenun buatan perajin lokal Indonesia membantu meningkatkan kesejahteraan bangsa karena...",
+                    opsi: ["Memajukan ekonomi UMKM dalam negeri dan membuka lapangan kerja", "Membuat barang impor semakin mahal", "Mengurangi jumlah perajin daerah", "Menghambat kreativitas anak bangsa"],
+                    benar: 0,
+                    penjelasan: "Mencintai produk dalam negeri menggerakkan roda perekonomian nasional dan memperkuat kemandirian bangsa."
+                },
+                {
+                    topik: "Proklamasi Kemerdekaan",
+                    soal: "Teks Proklamasi Kemerdekaan Indonesia dibacakan oleh Ir. Soekarno didampingi Drs. Moh. Hatta pada tanggal 17 Agustus 1945 sebagai bukti...",
+                    opsi: ["Lahirnya bangsa Indonesia yang merdeka, bersatu, dan berdaulat", "Berakhirnya seluruh kegiatan belajar di sekolah", "Dimulainya penjajahan baru di Nusantara", "Perpecahan antarwilayah kepulauan Indonesia"],
+                    benar: 0,
+                    penjelasan: "Proklamasi 17 Agustus 1945 adalah puncak perjuangan persatuan bangsa Indonesia menjadi negara yang merdeka dan berdaulat."
+                },
+                {
+                    topik: "Kerukunan Tetangga",
+                    soal: "Pak Budi dan Pak Wayan bertetangga dengan rukun meskipun berbeda suku dan agama. Saat keluarga Pak Budi sakit, Pak Wayan menjenguk dan membawakan buah. Manfaat sikap tersebut adalah...",
+                    opsi: ["Terciptanya kerukunan dan rasa aman di lingkungan bertetangga", "Warga menjadi saling curiga satu sama lain", "Lingkungan menjadi sepi dan tidak peduli", "Menimbulkan persaingan antarwarga"],
+                    benar: 0,
+                    penjelasan: "Saling peduli antartetangga tanpa membeda-bedakan latar belakang mewujudkan masyarakat yang rukun dan harmonis."
                 }
             ]
         };
@@ -811,6 +925,25 @@
                 clean = clean.replace(regex, '****');
             });
             return clean;
+        }
+
+        // Pengacak Urutan Opsi Jawaban (Fisher-Yates Shuffle) agar letak A/B/C/D merata
+        function getShuffledQuestion(rawQuestion) {
+            const indexedOptions = rawQuestion.opsi.map((text, idx) => ({
+                text,
+                isCorrect: idx === rawQuestion.benar
+            }));
+            for (let i = indexedOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indexedOptions[i], indexedOptions[j]] = [indexedOptions[j], indexedOptions[i]];
+            }
+            return {
+                topik: rawQuestion.topik,
+                soal: rawQuestion.soal,
+                opsi: indexedOptions.map(o => o.text),
+                benar: indexedOptions.findIndex(o => o.isCorrect),
+                penjelasan: rawQuestion.penjelasan
+            };
         }
 
         // =========================================================================
@@ -835,7 +968,7 @@
             score: 0,
             correctCount: 0,
             gatesSpawned: 0,
-            nextGateDist: 120,
+            nextGateDist: 300,
             usedQuestionIndices: [],
 
             playersMap: {},
@@ -862,13 +995,13 @@
                     gameState.playerId = currentUser.uid;
                 }
                 isFirebaseReady = true;
-                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
-                txt.textContent = "Server Online (Siap 40 Siswa)";
+                dot.className = "w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400";
+                txt.textContent = "Server Online (40 Siswa)";
             } catch (err) {
                 console.warn("Mode Offline aktif (Firebase tidak terjangkau):", err);
                 isFirebaseReady = false;
-                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
-                txt.textContent = "Mode Offline (Latihan Bot Siap)";
+                dot.className = "w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400";
+                txt.textContent = "Mode Offline (Bot Siap)";
             }
         }
 
@@ -889,19 +1022,19 @@
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x38bdf8);
-            scene.fog = new THREE.Fog(0x7dd3fc, 45, 165);
+            scene.fog = new THREE.Fog(0x7dd3fc, 45, 175);
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 250);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 260);
             camera.position.set(0, 6.5, 11);
             camera.lookAt(0, 1.5, -15);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
-            ambientLight = new THREE.AmbientLight(0xffffff, 0.72);
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
             scene.add(ambientLight);
 
             dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
@@ -911,29 +1044,29 @@
 
             // Tanah Lingkungan Samping
             groundMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(300, 420),
+                new THREE.PlaneGeometry(300, 440),
                 new THREE.MeshLambertMaterial({ color: 0x22c55e })
             );
             groundMesh.rotation.x = -Math.PI / 2;
-            groundMesh.position.set(0, -0.05, -120);
+            groundMesh.position.set(0, -0.05, -130);
             groundMesh.receiveShadow = true;
             scene.add(groundMesh);
 
             // Jalan Raya Aspal
             roadMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(16, 420),
+                new THREE.PlaneGeometry(16, 440),
                 new THREE.MeshLambertMaterial({ color: 0x334155 })
             );
             roadMesh.rotation.x = -Math.PI / 2;
-            roadMesh.position.set(0, 0, -120);
+            roadMesh.position.set(0, 0, -130);
             roadMesh.receiveShadow = true;
             scene.add(roadMesh);
 
             // Pembatas Jalan Merah-Putih & Marka Jalan
-            for (let z = 20; z > -260; z -= 6) {
+            for (let z = 20; z > -270; z -= 6) {
                 const isRed = Math.abs(z / 6) % 2 === 0;
                 const kerbMat = new THREE.MeshLambertMaterial({ color: isRed ? 0xef4444 : 0xffffff });
-                
+
                 const leftKerb = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 6), kerbMat);
                 leftKerb.position.set(-8.4, 0.2, z);
                 scene.add(leftKerb);
@@ -979,44 +1112,60 @@
             boostPads.forEach(bp => scene.remove(bp.mesh));
             boostPads = [];
 
-            for (let z = 10; z > -250; z -= 18) {
+            for (let z = 10; z > -260; z -= 18) {
                 createLevelScenery(-12.5, z, levelId);
                 createLevelScenery(12.5, z - 9, levelId);
             }
 
-            // Rintangan Kerucut Lalu Lintas (Level 2 & Level 3)
-            if (cfg.hasCones) {
-                const coneCount = levelId === 2 ? 7 : 11;
-                for (let i = 0; i < coneCount; i++) {
-                    const worldDist = 175 + i * 110;
-                    const laneX = [-4.6, -1.6, 1.6, 4.6][i % 4];
-                    const coneMesh = createTrafficConeMesh();
-                    coneMesh.position.set(laneX, 0, -worldDist);
-                    scene.add(coneMesh);
-                    trackObstacles.push({
-                        mesh: coneMesh,
-                        worldDist: worldDist,
-                        laneX: laneX,
-                        hitCooldown: 0
-                    });
+            // Rintangan Jalan (Kerucut, Barikade Merah-Putih, & Genangan Licin) sepanjang lintasan
+            const lanePositions = [-5.0, -2.5, 0, 2.5, 5.0];
+            const obsSpacing = Math.floor((cfg.trackLength - 350) / cfg.obstacleCount);
+            const obstacleTypes = ['cone', 'barricade', 'puddle'];
+
+            for (let i = 0; i < cfg.obstacleCount; i++) {
+                const worldDist = 240 + i * obsSpacing + (i % 3) * 18;
+                const laneX = lanePositions[(i * 2 + levelId) % lanePositions.length];
+                const obsType = obstacleTypes[(i + levelId) % obstacleTypes.length];
+
+                let obsMesh;
+                let hitWidth = 1.25;
+                if (obsType === 'barricade') {
+                    obsMesh = createBarricadeMesh();
+                    hitWidth = 1.65;
+                } else if (obsType === 'puddle') {
+                    obsMesh = createPuddleMesh();
+                    hitWidth = 1.45;
+                } else {
+                    obsMesh = createTrafficConeMesh();
+                    hitWidth = 1.15;
                 }
+
+                obsMesh.position.set(laneX, 0, -worldDist);
+                scene.add(obsMesh);
+                trackObstacles.push({
+                    mesh: obsMesh,
+                    type: obsType,
+                    worldDist,
+                    laneX,
+                    hitWidth,
+                    hitCooldown: 0
+                });
             }
 
-            // Zona Turbo Boost di Aspal (Khusus Level 3)
-            if (cfg.hasBoostPads) {
-                for (let i = 0; i < 6; i++) {
-                    const worldDist = 230 + i * 195;
-                    const laneX = [3.8, -3.8, 0][i % 3];
-                    const padMesh = createBoostPadMesh();
-                    padMesh.position.set(laneX, 0.04, -worldDist);
-                    scene.add(padMesh);
-                    boostPads.push({
-                        mesh: padMesh,
-                        worldDist: worldDist,
-                        laneX: laneX,
-                        usedCooldown: 0
-                    });
-                }
+            // Zona Percepatan Garuda (Boost Pads) di semua level
+            const padSpacing = Math.floor((cfg.trackLength - 450) / cfg.boostPadCount);
+            for (let i = 0; i < cfg.boostPadCount; i++) {
+                const worldDist = 310 + i * padSpacing;
+                const laneX = [-4.2, 4.2, -1.5, 1.5][(i + levelId) % 4];
+                const padMesh = createBoostPadMesh();
+                padMesh.position.set(laneX, 0.04, -worldDist);
+                scene.add(padMesh);
+                boostPads.push({
+                    mesh: padMesh,
+                    worldDist,
+                    laneX,
+                    usedCooldown: 0
+                });
             }
         }
 
@@ -1077,15 +1226,43 @@
             return coneGroup;
         }
 
+        function createBarricadeMesh() {
+            const barGroup = new THREE.Group();
+            const legMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+            const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.1, 0.5), legMat);
+            legL.position.set(-0.9, 0.55, 0);
+            const legR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.1, 0.5), legMat);
+            legR.position.set(0.9, 0.55, 0);
+
+            const boardRed = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 0.22), new THREE.MeshLambertMaterial({ color: 0xef4444 }));
+            boardRed.position.set(0, 0.9, 0);
+            const boardWhite = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 0.22), new THREE.MeshBasicMaterial({ color: 0xf8fafc }));
+            boardWhite.position.set(0, 0.6, 0);
+
+            barGroup.add(legL, legR, boardRed, boardWhite);
+            return barGroup;
+        }
+
+        function createPuddleMesh() {
+            const puddleGroup = new THREE.Group();
+            const puddle = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.1, 1.15, 0.05, 14),
+                new THREE.MeshBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.78 })
+            );
+            puddle.position.y = 0.03;
+            puddleGroup.add(puddle);
+            return puddleGroup;
+        }
+
         function createBoostPadMesh() {
             const padGroup = new THREE.Group();
             const pad = new THREE.Mesh(
-                new THREE.PlaneGeometry(2.4, 4.2),
-                new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.85 })
+                new THREE.PlaneGeometry(2.4, 4.4),
+                new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.88 })
             );
             pad.rotation.x = -Math.PI / 2;
             const border = new THREE.Mesh(
-                new THREE.PlaneGeometry(2.7, 4.5),
+                new THREE.PlaneGeometry(2.75, 4.75),
                 new THREE.MeshBasicMaterial({ color: 0xfacc15 })
             );
             border.rotation.x = -Math.PI / 2;
@@ -1115,7 +1292,7 @@
             portalScreen.position.set(0, 2.25, 0);
 
             gateGroup.add(leftPillar, rightPillar, topBanner, portalScreen);
-            gateGroup.position.set(0, 0, -120);
+            gateGroup.position.set(0, 0, -300);
             scene.add(gateGroup);
             quizGates.push(gateGroup);
         }
@@ -1123,7 +1300,7 @@
         function createFinishLine3D() {
             finishLineGroup = new THREE.Group();
             const pillarMat = new THREE.MeshLambertMaterial({ color: 0x10b981 });
-            
+
             const pLeft = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 1), pillarMat);
             pLeft.position.set(-7.8, 3.5, 0);
             const pRight = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 1), pillarMat);
@@ -1140,7 +1317,7 @@
             checker.position.set(0, 0.03, 0);
 
             finishLineGroup.add(pLeft, pRight, arch, checker);
-            finishLineGroup.position.set(0, 0, -900);
+            finishLineGroup.position.set(0, 0, -5200);
             scene.add(finishLineGroup);
         }
 
@@ -1254,15 +1431,14 @@
         function showLobbyAlert(msg, isError = true) {
             const box = document.getElementById('lobby-alert-box');
             box.className = isError
-                ? "mt-3 bg-rose-950/90 border border-rose-500/60 rounded-xl p-3 text-xs text-rose-200 animate-pop"
-                : "mt-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-200";
+                ? "mt-3 bg-rose-950/90 border border-rose-500/60 rounded-xl p-2.5 text-[11px] sm:text-xs text-rose-200 animate-pop"
+                : "mt-3 bg-indigo-950/75 border border-indigo-500/35 rounded-xl p-2.5 text-[11px] sm:text-xs text-indigo-200";
             box.innerHTML = isError ? `⚠️ <strong>Perhatian:</strong> ${msg}` : msg;
         }
 
-        // Membuat Room Baru (Untuk Guru / Host)
         async function createMultiplayerRoom() {
             if (!isFirebaseReady || !currentUser) {
-                showLobbyAlert("Koneksi server sedang offline. Gunakan tombol <strong>Latihan Solo (vs Bot AI)</strong> untuk langsung bermain!");
+                showLobbyAlert("Koneksi server sedang offline. Tekan tombol <strong>Latihan Solo AI</strong> untuk langsung bermain!");
                 return;
             }
 
@@ -1288,16 +1464,15 @@
                 enterWaitingRoomUI();
             } catch (err) {
                 console.error("Gagal membuat room:", err);
-                showLobbyAlert("Gagal membuat room di server. Periksa aturan Firestore atau gunakan Mode Latihan Solo.");
+                showLobbyAlert("Gagal membuat room di server. Periksa aturan Firestore atau gunakan Latihan Solo AI.");
             } finally {
                 btnCreate.disabled = false;
             }
         }
 
-        // Gabung ke Room yang Sudah Ada (Maksimal 40 Siswa)
         async function joinMultiplayerRoom() {
             if (!isFirebaseReady || !currentUser) {
-                showLobbyAlert("Koneksi server sedang offline. Gunakan tombol <strong>Latihan Solo (vs Bot AI)</strong>!");
+                showLobbyAlert("Koneksi server sedang offline. Tekan tombol <strong>Latihan Solo AI</strong>!");
                 return;
             }
 
@@ -1364,7 +1539,6 @@
         function subscribeToRoomUpdates(code) {
             cleanupListeners();
 
-            // 1. Pantau Status Room & Level Pilihan Guru
             const roomRef = doc(db, ROOT_COLLECTION, code);
             gameState.unsubRoom = onSnapshot(roomRef, (snap) => {
                 if (!snap.exists()) return;
@@ -1377,7 +1551,6 @@
                 }
             }, (err) => console.error("Room snapshot error:", err));
 
-            // 2. Pantau Daftar Pemain (Hingga 40 Siswa)
             const playersCol = collection(db, ROOT_COLLECTION, code, 'players');
             gameState.unsubPlayers = onSnapshot(playersCol, (snapshot) => {
                 const updatedMap = {};
@@ -1394,7 +1567,6 @@
                 renderLeaderboard();
             }, (err) => console.error("Players snapshot error:", err));
 
-            // 3. Pantau Live Chat Kelas
             const chatCol = collection(db, ROOT_COLLECTION, code, 'chat');
             gameState.unsubChat = onSnapshot(chatCol, (snapshot) => {
                 const msgs = [];
@@ -1490,11 +1662,11 @@
         }
 
         // =========================================================================
-        // 9. ALUR BALAPAN & GERBANG KUIS PPKn KELAS 6 SD
+        // 9. ALUR BALAPAN & 15 GERBANG KUIS PPKn KELAS 6 SD
         // =========================================================================
         function startRaceSequence() {
             const lvlCfg = LEVELS_CONFIG[gameState.selectedLevel] || LEVELS_CONFIG[1];
-            const gateSpacing = Math.floor((lvlCfg.trackLength - 140) / lvlCfg.gatesCount);
+            const gateSpacing = Math.floor((lvlCfg.trackLength - 260) / lvlCfg.gatesCount);
 
             applyLevelEnvironment3D(gameState.selectedLevel);
 
@@ -1520,6 +1692,7 @@
             document.getElementById('hud-circuit-title').textContent = `Sirkuit ${lvlCfg.title}`;
             document.getElementById('hud-distance-text').textContent = `0m / ${lvlCfg.trackLength}m`;
             document.getElementById('hud-player-name').textContent = gameState.playerName;
+            document.getElementById('hud-quiz-progress').textContent = `0/${lvlCfg.gatesCount}`;
             document.getElementById('hud-score').textContent = '0';
 
             const cdEl = document.getElementById('race-countdown');
@@ -1567,6 +1740,7 @@
             gameState.status = 'quiz';
             gameState.currentSpeed = 6;
 
+            const lvlCfg = LEVELS_CONFIG[gameState.selectedLevel] || LEVELS_CONFIG[1];
             const levelBank = BANK_SOAL_BY_LEVEL[gameState.selectedLevel] || BANK_SOAL_BY_LEVEL[1];
 
             if (gameState.usedQuestionIndices.length >= levelBank.length) {
@@ -1578,12 +1752,13 @@
             } while (gameState.usedQuestionIndices.includes(qIdx));
             gameState.usedQuestionIndices.push(qIdx);
 
-            const qData = levelBank[qIdx];
+            // Acak posisi jawaban A, B, C, D agar merata dan anti hafalan urutan
+            const qData = getShuffledQuestion(levelBank[qIdx]);
             const modal = document.getElementById('modal-quiz');
             const optionsContainer = document.getElementById('quiz-options');
             const expBox = document.getElementById('quiz-explanation-box');
 
-            document.getElementById('quiz-topic-badge').textContent = `📚 Level ${gameState.selectedLevel} • ${qData.topik}`;
+            document.getElementById('quiz-topic-badge').textContent = `Soal ${gameState.gatesSpawned}/${lvlCfg.gatesCount} • ${qData.topik}`;
             document.getElementById('quiz-question').textContent = qData.soal;
             expBox.classList.add('hidden');
             optionsContainer.innerHTML = '';
@@ -1592,10 +1767,10 @@
             qData.opsi.forEach((optText, index) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = "btn-3d w-full text-left bg-slate-800 hover:bg-sky-600/40 border-2 border-slate-700 hover:border-sky-400 rounded-2xl p-3 text-xs sm:text-sm font-semibold text-white flex items-center gap-3 transition";
+                btn.className = "btn-3d w-full text-left bg-slate-800 active:bg-sky-600/50 hover:bg-sky-600/35 border-2 border-slate-700 hover:border-sky-400 rounded-2xl p-3 sm:p-3.5 text-xs sm:text-sm font-semibold text-white flex items-center gap-3 transition";
                 btn.innerHTML = `
-                    <span class="w-7 h-7 rounded-xl bg-slate-950 text-amber-400 font-game font-bold flex items-center justify-center shrink-0 border border-slate-700">${letters[index]}</span>
-                    <span>${optText}</span>
+                    <span class="w-8 h-8 rounded-xl bg-slate-950 text-amber-400 font-game font-bold flex items-center justify-center shrink-0 border border-slate-700">${letters[index]}</span>
+                    <span class="leading-snug">${optText}</span>
                 `;
                 btn.onclick = () => handleQuizAnswer(index, qData, optionsContainer, expBox, modal);
                 optionsContainer.appendChild(btn);
@@ -1609,9 +1784,9 @@
             buttons.forEach((b, idx) => {
                 b.disabled = true;
                 if (idx === qData.benar) {
-                    b.className = "w-full text-left bg-emerald-600 border-2 border-emerald-300 rounded-2xl p-3 text-xs sm:text-sm font-bold text-white flex items-center gap-3";
+                    b.className = "w-full text-left bg-emerald-600 border-2 border-emerald-300 rounded-2xl p-3 sm:p-3.5 text-xs sm:text-sm font-bold text-white flex items-center gap-3";
                 } else if (idx === selectedIndex) {
-                    b.className = "w-full text-left bg-rose-600 border-2 border-rose-300 rounded-2xl p-3 text-xs sm:text-sm font-bold text-white flex items-center gap-3";
+                    b.className = "w-full text-left bg-rose-600 border-2 border-rose-300 rounded-2xl p-3 sm:p-3.5 text-xs sm:text-sm font-bold text-white flex items-center gap-3";
                 }
             });
 
@@ -1620,19 +1795,19 @@
             if (isCorrect) {
                 gameState.score += 100;
                 gameState.correctCount++;
-                gameState.turboTimer = 3.5;
+                gameState.turboTimer = 3.8;
                 gameState.slowTimer = 0;
 
-                expBox.className = "mt-4 p-3.5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/85 text-emerald-100 text-xs sm:text-sm";
+                expBox.className = "mt-3.5 p-3 rounded-2xl border-2 border-emerald-400 bg-emerald-950/90 text-emerald-100 text-xs sm:text-sm";
                 expBox.innerHTML = `<strong>🔥 BENAR (+100 Poin & TURBO BOOST)!</strong><br>${qData.penjelasan}`;
                 showRaceFeedback("🔥 JAWABAN BENAR! TURBO AKTIF!", "bg-emerald-600 border-emerald-300 text-white");
             } else {
-                gameState.slowTimer = 2.5;
+                gameState.slowTimer = 2.4;
                 gameState.turboTimer = 0;
 
-                expBox.className = "mt-4 p-3.5 rounded-2xl border-2 border-rose-400 bg-rose-950/85 text-rose-100 text-xs sm:text-sm";
+                expBox.className = "mt-3.5 p-3 rounded-2xl border-2 border-rose-400 bg-rose-950/90 text-rose-100 text-xs sm:text-sm";
                 expBox.innerHTML = `<strong>💡 Kurang Tepat (Mobil Melambat):</strong><br>${qData.penjelasan}`;
-                showRaceFeedback("⚠️ Jawaban Salah! Pelajari pembahasannya ya.", "bg-rose-600 border-rose-300 text-white");
+                showRaceFeedback("⚠️ Kurang Tepat! Simak pembahasannya ya.", "bg-rose-600 border-rose-300 text-white");
             }
 
             expBox.classList.remove('hidden');
@@ -1649,9 +1824,9 @@
         function showRaceFeedback(text, colorClass) {
             const el = document.getElementById('race-feedback-banner');
             el.textContent = text;
-            el.className = `max-w-md text-center px-4 py-2 rounded-2xl font-game text-xs sm:text-sm font-bold shadow-2xl border-2 animate-pop ${colorClass}`;
+            el.className = `max-w-xs sm:max-w-md text-center px-3.5 py-2 rounded-2xl font-game text-xs sm:text-base font-bold shadow-2xl border-2 animate-pop ${colorClass}`;
             el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 2600);
+            setTimeout(() => el.classList.add('hidden'), 2500);
         }
 
         // =========================================================================
@@ -1665,16 +1840,16 @@
             lastTime = now;
 
             const lvlCfg = LEVELS_CONFIG[gameState.selectedLevel] || LEVELS_CONFIG[1];
-            const gateSpacing = Math.floor((lvlCfg.trackLength - 140) / lvlCfg.gatesCount);
+            const gateSpacing = Math.floor((lvlCfg.trackLength - 260) / lvlCfg.gatesCount);
 
             if (gameState.status === 'racing' || gameState.status === 'quiz') {
                 if (gameState.status === 'racing') {
                     if (gameState.turboTimer > 0) {
                         gameState.turboTimer -= dt;
-                        gameState.currentSpeed = lvlCfg.baseSpeed + 20;
+                        gameState.currentSpeed = lvlCfg.baseSpeed + 22;
                     } else if (gameState.slowTimer > 0) {
                         gameState.slowTimer -= dt;
-                        gameState.currentSpeed = Math.max(13, lvlCfg.baseSpeed - 13);
+                        gameState.currentSpeed = Math.max(14, lvlCfg.baseSpeed - 13);
                     } else {
                         gameState.currentSpeed = lvlCfg.baseSpeed;
                     }
@@ -1683,7 +1858,7 @@
                 if (turboFlameGroup) {
                     turboFlameGroup.visible = gameState.turboTimer > 0;
                     if (turboFlameGroup.visible) {
-                        turboFlameGroup.scale.z = 0.8 + Math.random() * 0.6;
+                        turboFlameGroup.scale.z = 0.85 + Math.random() * 0.65;
                     }
                 }
                 if (playerCarMesh && playerCarMesh.userData.wheels) {
@@ -1693,13 +1868,14 @@
                 }
 
                 gameState.distance += gameState.currentSpeed * dt;
-                gameState.laneX += (gameState.targetLaneX - gameState.laneX) * 10 * dt;
+                gameState.laneX += (gameState.targetLaneX - gameState.laneX) * 11 * dt;
                 playerCarMesh.position.x = gameState.laneX;
                 playerCarMesh.rotation.z = (gameState.laneX - gameState.targetLaneX) * 0.12;
 
                 if (gameState.status === 'racing' && gameState.gatesSpawned < lvlCfg.gatesCount && gameState.distance >= gameState.nextGateDist) {
                     gameState.gatesSpawned++;
                     gameState.nextGateDist += gateSpacing;
+                    document.getElementById('hud-quiz-progress').textContent = `${gameState.gatesSpawned}/${lvlCfg.gatesCount}`;
                     triggerPPKnQuiz();
                 }
 
@@ -1711,9 +1887,9 @@
                 if (gameState.mode === 'solo') {
                     Object.values(gameState.playersMap).forEach(p => {
                         if (p.isBot && !p.finished) {
-                            const wave = Math.sin(now * 0.002 + p.laneX) * 5;
+                            const wave = Math.sin(now * 0.002 + p.laneX) * 5.5;
                             p.distance += (p.speed + wave) * dt;
-                            if (Math.random() < 0.005) {
+                            if (Math.random() < 0.0045 && p.correctCount < lvlCfg.gatesCount) {
                                 p.score += 100;
                                 p.correctCount++;
                             }
@@ -1754,26 +1930,33 @@
             trackObstacles.forEach(obs => {
                 const relZ = -(obs.worldDist - gameState.distance);
                 obs.mesh.position.z = relZ;
-                obs.mesh.visible = (relZ > -180 && relZ < 20);
+                obs.mesh.visible = (relZ > -185 && relZ < 20);
 
                 if (obs.hitCooldown > 0) obs.hitCooldown -= 0.016;
-                if (gameState.status === 'racing' && obs.hitCooldown <= 0 && Math.abs(relZ) < 1.6 && Math.abs(gameState.laneX - obs.laneX) < 1.2) {
+                if (gameState.status === 'racing' && obs.hitCooldown <= 0 && Math.abs(relZ) < 1.65 && Math.abs(gameState.laneX - obs.laneX) < obs.hitWidth) {
                     obs.hitCooldown = 2.0;
                     gameState.slowTimer = 1.6;
                     gameState.turboTimer = 0;
-                    showRaceFeedback("🚧 Nabrak Kerucut! Hindari rintangan di jalan!", "bg-amber-600 border-amber-300 text-white");
+
+                    if (obs.type === 'barricade') {
+                        showRaceFeedback("🚧 Nabrak Barikade! Hindari rintangan jalan!", "bg-rose-600 border-rose-300 text-white");
+                    } else if (obs.type === 'puddle') {
+                        showRaceFeedback("💦 Melindas Genangan Licin! Mobil melambat!", "bg-sky-700 border-sky-300 text-white");
+                    } else {
+                        showRaceFeedback("🚧 Nabrak Kerucut! Belok KIRI/KANAN!", "bg-amber-600 border-amber-300 text-white");
+                    }
                 }
             });
 
             boostPads.forEach(bp => {
                 const relZ = -(bp.worldDist - gameState.distance);
                 bp.mesh.position.z = relZ;
-                bp.mesh.visible = (relZ > -180 && relZ < 20);
+                bp.mesh.visible = (relZ > -185 && relZ < 20);
 
                 if (bp.usedCooldown > 0) bp.usedCooldown -= 0.016;
-                if (gameState.status === 'racing' && bp.usedCooldown <= 0 && Math.abs(relZ) < 2.2 && Math.abs(gameState.laneX - bp.laneX) < 1.5) {
+                if (gameState.status === 'racing' && bp.usedCooldown <= 0 && Math.abs(relZ) < 2.3 && Math.abs(gameState.laneX - bp.laneX) < 1.55) {
                     bp.usedCooldown = 2.5;
-                    gameState.turboTimer = Math.max(gameState.turboTimer, 2.2);
+                    gameState.turboTimer = Math.max(gameState.turboTimer, 2.3);
                     gameState.slowTimer = 0;
                     showRaceFeedback("⚡ ZONA PERCEPATAN GARUDA!", "bg-cyan-600 border-cyan-300 text-white");
                 }
@@ -1820,7 +2003,7 @@
                 const relativeZ = -(p.distance - gameState.distance);
                 mesh.position.x += ((p.laneX || 0) - mesh.position.x) * 0.15;
                 mesh.position.z += (relativeZ - mesh.position.z) * 0.2;
-                mesh.visible = (relativeZ > -150 && relativeZ < 35);
+                mesh.visible = (relativeZ > -160 && relativeZ < 35);
             });
 
             Object.keys(opponentMeshes).forEach(id => {
@@ -1833,8 +2016,12 @@
 
         function updateRaceHUD(lvlCfg) {
             const pct = Math.min(100, Math.round((gameState.distance / lvlCfg.trackLength) * 100));
+            const roundedDist = Math.round(gameState.distance);
+
             document.getElementById('hud-progress-bar').style.width = `${pct}%`;
-            document.getElementById('hud-distance-text').textContent = `${Math.round(gameState.distance)}m / ${lvlCfg.trackLength}m`;
+            document.getElementById('hud-progress-bar-mobile').style.width = `${pct}%`;
+            document.getElementById('hud-distance-text').textContent = `${roundedDist}m / ${lvlCfg.trackLength}m`;
+            document.getElementById('hud-distance-mini').textContent = `${roundedDist}m`;
 
             const displayKmh = Math.round(gameState.currentSpeed * 3.2);
             document.getElementById('hud-speed').textContent = displayKmh;
@@ -1844,16 +2031,16 @@
 
             if (gameState.turboTimer > 0) {
                 speedPanel.classList.add('turbo-active', 'border-amber-400');
-                statusPill.textContent = `🔥 TURBO BOOST (${gameState.turboTimer.toFixed(1)}s)`;
-                statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 mt-0.5";
+                statusPill.textContent = `🔥 TURBO (${gameState.turboTimer.toFixed(1)}s)`;
+                statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 mt-1";
             } else if (gameState.slowTimer > 0) {
                 speedPanel.classList.remove('turbo-active', 'border-amber-400');
                 statusPill.textContent = `⚠️ Melambat (${gameState.slowTimer.toFixed(1)}s)`;
-                statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white mt-0.5";
+                statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white mt-1";
             } else {
                 speedPanel.classList.remove('turbo-active', 'border-amber-400');
-                statusPill.textContent = "Normal (Gunakan ◀ / ▶ atau A / D)";
-                statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 mt-0.5";
+                statusPill.textContent = "Geser layar / ketuk KIRI-KANAN";
+                statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 mt-1";
             }
         }
 
@@ -1861,11 +2048,11 @@
             const listEl = document.getElementById('leaderboard-list');
             const players = Object.values(gameState.playersMap);
 
-            players.sort((a, b) => (b.distance + b.score * 0.2) - (a.distance + a.score * 0.2));
+            players.sort((a, b) => (b.distance + b.score * 0.25) - (a.distance + a.score * 0.25));
 
             document.getElementById('hud-total-players').textContent = `${players.length}/${MAX_PLAYERS}`;
             const myRank = players.findIndex(p => p.id === gameState.playerId) + 1;
-            document.getElementById('hud-rank').textContent = `#${myRank} / ${players.length}`;
+            document.getElementById('hud-rank').textContent = `#${myRank}/${players.length}`;
 
             listEl.innerHTML = '';
             players.slice(0, 10).forEach((p, idx) => {
@@ -1937,11 +2124,11 @@
                 const tr = document.createElement('tr');
                 tr.className = p.id === gameState.playerId ? 'bg-emerald-500/15 font-bold text-white' : 'text-slate-300';
                 tr.innerHTML = `
-                    <td class="py-1.5 px-2 font-game text-amber-400">#${idx + 1}</td>
-                    <td class="py-1.5 px-2">${p.name}</td>
-                    <td class="py-1.5 px-2">${car.emoji} ${car.name}</td>
-                    <td class="py-1.5 px-2 text-right text-sky-300">${p.correctCount} Soal</td>
-                    <td class="py-1.5 px-2 text-right text-emerald-400 font-bold">${p.score}</td>
+                    <td class="py-1.5 px-1.5 font-game text-amber-400">#${idx + 1}</td>
+                    <td class="py-1.5 px-1.5">${p.name}</td>
+                    <td class="py-1.5 px-1.5 hidden sm:table-cell">${car.emoji} ${car.name}</td>
+                    <td class="py-1.5 px-1.5 text-right text-sky-300">${p.correctCount}/${lvlCfg.gatesCount}</td>
+                    <td class="py-1.5 px-1.5 text-right text-emerald-400 font-bold">${p.score}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1983,13 +2170,18 @@
             bubble.innerHTML = `<span class="font-bold ${isMe ? 'text-amber-300' : 'text-sky-400'}">${sender}:</span> <span>${text}</span>`;
             container.appendChild(bubble);
             container.scrollTop = container.scrollHeight;
+
+            const chatPanel = document.getElementById('panel-chat');
+            if (chatPanel.classList.contains('hidden')) {
+                document.getElementById('chat-unread-badge').classList.remove('hidden');
+            }
         }
 
         function renderChatMessages(msgs) {
             const container = document.getElementById('chat-messages');
             container.innerHTML = `
-                <div class="bg-indigo-950/70 text-indigo-200 p-2 rounded-xl text-[11px] border border-indigo-500/20">
-                    👋 Chat Kelas aktif! Saling semangati dengan bahasa yang sopan ya!
+                <div class="bg-indigo-950/75 text-indigo-200 p-2 rounded-xl text-[11px] border border-indigo-500/20">
+                    👋 Saling semangati teman sekelas dengan kata-kata yang sopan ya!
                 </div>
             `;
             msgs.forEach(m => {
@@ -2004,7 +2196,7 @@
             container.scrollTop = container.scrollHeight;
 
             const chatPanel = document.getElementById('panel-chat');
-            if (chatPanel.classList.contains('hidden')) {
+            if (chatPanel.classList.contains('hidden') && msgs.length > 0) {
                 document.getElementById('chat-unread-badge').classList.remove('hidden');
             }
         }
@@ -2017,7 +2209,7 @@
         }
 
         // =========================================================================
-        // 13. EVENT LISTENERS UI & KONTROL KENDARAAN
+        // 13. EVENT LISTENERS UI, KONTROL SENTUH ANDROID, & GESTURE SWIPE
         // =========================================================================
         function selectGameLevel(levelId, syncToFirestore = true) {
             gameState.selectedLevel = levelId;
@@ -2026,9 +2218,9 @@
             document.querySelectorAll('.level-opt-btn').forEach(btn => {
                 const btnLvl = Number(btn.dataset.level);
                 if (btnLvl === levelId) {
-                    btn.className = 'level-opt-btn p-2.5 rounded-xl border-2 text-left transition bg-amber-500/20 border-amber-400 text-white shadow-lg';
+                    btn.className = 'level-opt-btn shrink-0 w-36 sm:w-auto p-2.5 rounded-xl border-2 text-left transition bg-amber-500/20 border-amber-400 text-white shadow-lg';
                 } else {
-                    btn.className = 'level-opt-btn p-2.5 rounded-xl border-2 text-left transition bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500';
+                    btn.className = 'level-opt-btn shrink-0 w-36 sm:w-auto p-2.5 rounded-xl border-2 text-left transition bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500';
                 }
             });
 
@@ -2048,33 +2240,33 @@
         }
 
         function setupUIAndControls() {
-            // Render 6 Pilihan Mobil Balap Nusantara
+            // Render 6 Pilihan Mobil Balap Nusantara (Horizontal Scroll di HP)
             const carContainer = document.getElementById('car-selector');
             CAR_MODELS.forEach((car, index) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = `car-opt-btn p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 ${
+                btn.className = `car-opt-btn shrink-0 w-28 sm:w-auto p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 ${
                     index === 0 ? 'bg-sky-500/25 border-sky-400 text-white shadow-md' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
                 }`;
                 btn.innerHTML = `<span class="text-xl sm:text-2xl">${car.emoji}</span><span class="font-game text-[11px] font-bold leading-tight">${car.name}</span>`;
                 btn.onclick = () => {
                     gameState.selectedCar = car;
                     document.querySelectorAll('.car-opt-btn').forEach(b => {
-                        b.className = 'car-opt-btn p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500';
+                        b.className = 'car-opt-btn shrink-0 w-28 sm:w-auto p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500';
                     });
-                    btn.className = 'car-opt-btn p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 bg-sky-500/25 border-sky-400 text-white shadow-md';
+                    btn.className = 'car-opt-btn shrink-0 w-28 sm:w-auto p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 bg-sky-500/25 border-sky-400 text-white shadow-md';
                     updatePlayerCarAppearance();
                 };
                 carContainer.appendChild(btn);
             });
 
-            // Render 3 Pilihan Level Materi & Sirkuit
+            // Render 3 Pilihan Level Materi & Sirkuit Duel
             const levelContainer = document.getElementById('level-selector');
             Object.values(LEVELS_CONFIG).forEach((lvl) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.dataset.level = lvl.id;
-                btn.className = `level-opt-btn p-2.5 rounded-xl border-2 text-left transition ${
+                btn.className = `level-opt-btn shrink-0 w-36 sm:w-auto p-2.5 rounded-xl border-2 text-left transition ${
                     lvl.id === 1 ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
                 }`;
                 btn.innerHTML = `
@@ -2126,7 +2318,6 @@
                 startRaceSequence();
             });
 
-            // Tombol Lanjut ke Level Berikutnya dari Podium
             document.getElementById('btn-next-level').addEventListener('click', async () => {
                 if (gameState.selectedLevel >= 3) return;
                 const nextLevel = gameState.selectedLevel + 1;
@@ -2145,7 +2336,6 @@
                 }
             });
 
-            // Tombol Kembali ke Lobi dari Podium
             document.getElementById('btn-back-lobby').addEventListener('click', () => {
                 cleanupListeners();
                 gameState.status = 'lobby';
@@ -2156,14 +2346,14 @@
                 document.getElementById('lobby-guide').classList.remove('hidden');
             });
 
-            // Kontrol Setir Kiri / Kanan (Keyboard & Touch)
+            // Kontrol Setir Kiri / Kanan (Keyboard, Tombol Sentuh Android, & Swipe Kanvas)
             const steerLeft = () => {
                 if (gameState.status !== 'racing') return;
-                gameState.targetLaneX = Math.max(-6.2, gameState.targetLaneX - 2.2);
+                gameState.targetLaneX = Math.max(-6.2, gameState.targetLaneX - 2.3);
             };
             const steerRight = () => {
                 if (gameState.status !== 'racing') return;
-                gameState.targetLaneX = Math.min(6.2, gameState.targetLaneX + 2.2);
+                gameState.targetLaneX = Math.min(6.2, gameState.targetLaneX + 2.3);
             };
 
             window.addEventListener('keydown', (e) => {
@@ -2172,25 +2362,87 @@
                 if (e.code === 'ArrowRight' || e.code === 'KeyD') steerRight();
             });
 
-            document.getElementById('btn-steer-left').addEventListener('click', steerLeft);
-            document.getElementById('btn-steer-right').addEventListener('click', steerRight);
+            // Respons sentuhan instan (touchstart + click) untuk tombol KIRI dan KANAN di Android
+            const btnLeft = document.getElementById('btn-steer-left');
+            const btnRight = document.getElementById('btn-steer-right');
 
-            // Toggle Chat & Klasemen
+            const bindSteerButton = (btn, actionFn) => {
+                let touched = false;
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    touched = true;
+                    btn.classList.add('btn-pressed');
+                    actionFn();
+                }, { passive: false });
+                btn.addEventListener('touchend', () => {
+                    btn.classList.remove('btn-pressed');
+                    setTimeout(() => { touched = false; }, 250);
+                });
+                btn.addEventListener('click', () => {
+                    if (!touched) actionFn();
+                });
+            };
+
+            bindSteerButton(btnLeft, steerLeft);
+            bindSteerButton(btnRight, steerRight);
+
+            // Dukungan Gesture Geser Layar (Swipe Kiri/Kanan) pada Kanvas 3D
+            const canvasContainer = document.getElementById('canvas-container');
+            let touchStartX = null;
+            let touchStartY = null;
+
+            canvasContainer.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+
+            canvasContainer.addEventListener('touchend', (e) => {
+                if (touchStartX === null || e.changedTouches.length === 0) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+                    if (dx < 0) steerLeft();
+                    else steerRight();
+                }
+                touchStartX = null;
+                touchStartY = null;
+            }, { passive: true });
+
+            // Toggle Chat & Klasemen (Saling menutup di layar HP agar layar tidak penuh sesak)
             const chatPanel = document.getElementById('panel-chat');
+            const lbPanel = document.getElementById('panel-leaderboard');
+
             document.getElementById('btn-toggle-chat').addEventListener('click', () => {
+                const isOpening = chatPanel.classList.contains('hidden');
                 chatPanel.classList.toggle('hidden');
-                if (!chatPanel.classList.contains('hidden')) {
+                if (isOpening) {
+                    chatPanel.classList.add('flex');
                     document.getElementById('chat-unread-badge').classList.add('hidden');
+                    if (window.innerWidth < 640) {
+                        lbPanel.classList.add('hidden');
+                        lbPanel.classList.remove('flex');
+                    }
                 }
             });
+
             document.getElementById('btn-close-chat').addEventListener('click', () => {
                 chatPanel.classList.add('hidden');
             });
 
             document.getElementById('btn-toggle-leaderboard').addEventListener('click', () => {
-                const lb = document.getElementById('panel-leaderboard');
-                lb.classList.toggle('hidden');
-                lb.classList.toggle('flex');
+                const isOpening = lbPanel.classList.contains('hidden');
+                lbPanel.classList.toggle('hidden');
+                lbPanel.classList.toggle('flex');
+                if (isOpening && window.innerWidth < 640) {
+                    chatPanel.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('btn-close-leaderboard').addEventListener('click', () => {
+                lbPanel.classList.add('hidden');
+                lbPanel.classList.remove('flex');
             });
 
             // Form Chat & Stiker Cepat
