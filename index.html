@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Balap Pintar PPKn Kelas 6 SD - Mabar 40 Siswa</title>
-    <!-- Tailwind CSS untuk UI responsif dan modern -->
+    <!-- Tailwind CSS untuk tata letak responsif dan modern -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js untuk Sirkuit Balap 3D -->
+    <!-- Three.js untuk rendering Sirkuit Balap 3D -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Google Fonts: Fredoka (ramah anak) & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
             background-color: #0f172a;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation;
         }
         .font-game {
             font-family: 'Fredoka', sans-serif;
@@ -26,17 +27,17 @@
         /* Tombol 3D bergaya game */
         .btn-3d {
             transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
         }
         .btn-3d:active:not(:disabled) {
             transform: translateY(3px);
-            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
         }
         .btn-3d:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        /* Animasi Pop & Turbo */
+        /* Animasi Pop & Efek Turbo */
         @keyframes popScale {
             0% { transform: scale(0.85); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
@@ -45,11 +46,11 @@
             animation: popScale 0.25s ease-out forwards;
         }
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.6); }
-            50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.9); }
+            0%, 100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.7); }
+            50% { box-shadow: 0 0 32px rgba(239, 68, 68, 0.95); }
         }
         .turbo-active {
-            animation: pulseGlow 0.5s infinite;
+            animation: pulseGlow 0.45s infinite;
         }
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -63,81 +64,79 @@
     <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
 
     <!-- ===================================================================== -->
-    <!-- 1. LAYAR LOBBY / MASUK KELAS                                          -->
+    <!-- 1. LAYAR LOBI / MASUK KELAS                                           -->
     <!-- ===================================================================== -->
-    <div id="screen-lobby" class="fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+    <div id="screen-lobby" class="fixed inset-0 z-30 flex items-center justify-center p-2.5 sm:p-5 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
         <div class="max-w-5xl w-full bg-slate-900/95 border-2 border-sky-500/50 rounded-3xl shadow-2xl overflow-hidden my-auto animate-pop">
             
             <!-- Header Lobi -->
-            <div class="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 px-6 py-4 flex flex-wrap items-center justify-between gap-2 border-b-4 border-red-800">
+            <div class="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b-4 border-red-800">
                 <div class="flex items-center gap-3">
                     <span class="text-3xl sm:text-4xl bg-white/20 p-2 rounded-2xl">🏎️</span>
                     <div>
-                        <h1 class="font-game text-xl sm:text-3xl font-bold text-white drop-shadow">BALAP PINTAR PPKn KELAS 6</h1>
-                        <p class="text-xs sm:text-sm text-amber-100 font-medium">Mabar Edukasi Pancasila, UUD 1945 & Bhinneka Tunggal Ika (Maks. 40 Siswa)</p>
+                        <h1 class="font-game text-lg sm:text-3xl font-bold text-white drop-shadow">BALAP PINTAR PPKn KELAS 6</h1>
+                        <p class="text-[11px] sm:text-sm text-amber-100 font-medium">Mabar Edukasi Pancasila, UUD 1945 & Bhinneka Tunggal Ika (Maks. 40 Siswa)</p>
                     </div>
                 </div>
-                <div id="connection-badge" class="bg-slate-950/50 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border border-white/20">
+                <div id="connection-badge" class="bg-slate-950/60 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border border-white/20">
                     <span id="conn-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <span id="conn-text">Menghubungkan Server Kelas...</span>
+                    <span id="conn-text">Menghubungkan Server...</span>
                 </div>
             </div>
 
-            <!-- Konten Utama Lobi: Kiri (Form Siswa/Guru) & Kanan (Ruang Tunggu Kelas / Info) -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-5 sm:p-6">
+            <!-- Konten Utama Lobi -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 p-4 sm:p-6">
                 
-                <!-- Kolom Kiri: Identitas & Pilihan Mobil -->
-                <div class="lg:col-span-6 space-y-4">
+                <!-- Kolom Kiri: Identitas, 6 Mobil Nusantara, & 3 Level -->
+                <div class="lg:col-span-6 space-y-3.5">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1.5">1. Nama Panggilan Siswa / Guru</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">1. Nama Panggilan Siswa / Guru</label>
                         <input id="input-name" type="text" maxlength="18" placeholder="Contoh: Budi_6A atau Ibu_Siti" 
-                               class="w-full bg-slate-800 border-2 border-slate-700 focus:border-sky-400 rounded-xl px-4 py-2.5 text-white font-semibold outline-none transition">
+                               class="w-full bg-slate-800 border-2 border-slate-700 focus:border-sky-400 rounded-xl px-4 py-2 text-white font-semibold outline-none transition">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1.5">2. Pilih Mobil Balap Nusantara</label>
-                        <div id="car-selector" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            <!-- Diisi lewat JS -->
+                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">2. Pilih Mobil Balap Nusantara (6 Pilihan)</label>
+                        <div id="car-selector" class="grid grid-cols-3 gap-2">
+                            <!-- Diisi otomatis via JS -->
                         </div>
                     </div>
 
-                    <!-- Pemilih Level Materi & Sirkuit (Level 1, 2, 3) -->
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1.5">3. Pilih Level Materi & Sirkuit Balap</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">3. Pilih Level Materi & Sirkuit Balap</label>
                         <div id="level-selector" class="grid grid-cols-3 gap-2">
-                            <!-- Diisi lewat JS -->
+                            <!-- Diisi otomatis via JS -->
                         </div>
                     </div>
 
                     <!-- Mode Mabar Kelas vs Mode Solo Bot -->
-                    <div class="bg-slate-800/70 p-4 rounded-2xl border border-slate-700 space-y-3">
+                    <div class="bg-slate-800/75 p-3.5 rounded-2xl border border-slate-700 space-y-2.5">
                         <div class="text-xs font-bold uppercase tracking-wider text-amber-400">4. Pilih Mode Permainan</div>
                         
-                        <!-- Gabung Room dengan Kode -->
                         <div class="flex gap-2">
                             <input id="input-room-code" type="text" maxlength="6" placeholder="KODE ROOM (cth: 6A2026)" 
-                                   class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3 py-2 text-center font-game text-lg tracking-widest uppercase text-emerald-300 outline-none">
-                            <button id="btn-join-room" class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold px-4 py-2 rounded-xl text-sm border-b-4 border-emerald-700">
+                                   class="flex-1 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3 py-2 text-center font-game text-base sm:text-lg tracking-widest uppercase text-emerald-300 outline-none">
+                            <button id="btn-join-room" type="button" class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold px-4 py-2 rounded-xl text-sm border-b-4 border-emerald-700">
                                 Gabung Kelas
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                            <button id="btn-create-room" class="btn-3d bg-sky-500 hover:bg-sky-400 text-slate-950 font-game font-bold py-2.5 px-3 rounded-xl text-sm border-b-4 border-sky-700 flex items-center justify-center gap-1.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                            <button id="btn-create-room" type="button" class="btn-3d bg-sky-500 hover:bg-sky-400 text-slate-950 font-game font-bold py-2.5 px-3 rounded-xl text-sm border-b-4 border-sky-700 flex items-center justify-center gap-1.5">
                                 <span>🏫</span>
                                 <span>Buat Room Baru (Guru)</span>
                             </button>
 
-                            <button id="btn-solo-bot" class="btn-3d bg-amber-400 hover:bg-amber-300 text-slate-950 font-game font-bold py-2.5 px-3 rounded-xl text-sm border-b-4 border-amber-600 flex items-center justify-center gap-1.5">
+                            <button id="btn-solo-bot" type="button" class="btn-3d bg-amber-400 hover:bg-amber-300 text-slate-950 font-game font-bold py-2.5 px-3 rounded-xl text-sm border-b-4 border-amber-600 flex items-center justify-center gap-1.5">
                                 <span>🤖</span>
-                                <span>Mode Latihan (vs Bot AI)</span>
+                                <span>Latihan Solo (vs Bot AI)</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Kolom Kanan: Ruang Tunggu Room (Lobby Room) atau Panduan Singkat -->
-                <div class="lg:col-span-6 flex flex-col bg-slate-950/80 rounded-2xl border border-slate-800 p-4 min-h-[290px]">
+                <!-- Kolom Kanan: Panduan Materi atau Ruang Tunggu Kelas (Max 40 Siswa) -->
+                <div class="lg:col-span-6 flex flex-col bg-slate-950/85 rounded-2xl border border-slate-800 p-4 min-h-[300px]">
                     
                     <!-- Tampilan Sebelum Masuk Room -->
                     <div id="lobby-guide" class="flex-1 flex flex-col justify-between">
@@ -148,28 +147,28 @@
                             <ul class="space-y-2 text-xs sm:text-sm text-slate-300">
                                 <li class="flex items-start gap-2">
                                     <span class="bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded">1</span>
-                                    <span>Mobil melaju otomatis di lintasan 3D. Gunakan <strong>Panah Kiri/Kanan (A/D)</strong> untuk berpindah jalur.</span>
+                                    <span>Mobil melaju otomatis di lintasan 3D. Gunakan <strong>Panah Kiri/Kanan (A/D)</strong> atau tombol layar untuk berpindah jalur.</span>
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <span class="bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded">2</span>
-                                    <span>Setiap melewati <strong>Gerbang Kuis</strong>, jawab soal PPKn (Pancasila, UUD 1945, Bhinneka Tunggal Ika, Musyawarah).</span>
+                                    <span>Setiap melewati <strong>Gerbang Kuis</strong>, jawab soal PPKn Kelas 6 SD (36 soal bervariasi di 3 level berbeda).</span>
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <span class="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">3</span>
-                                    <span><strong>Jawaban Benar</strong> mengaktifkan <strong>TURBO BOOST 🔥</strong>! Jawaban salah memperlambat mobil sementara & menampilkan pembahasan.</span>
+                                    <span><strong>Jawaban Benar</strong> memicu <strong>TURBO BOOST 🔥</strong> (+100 Poin)! Jawaban salah memperlambat mobil & menampilkan pembahasan edukatif.</span>
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <span class="bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded">4</span>
-                                    <span>Gunakan fitur <strong>Chat Kelas</strong> untuk menyemangati teman satu kelas (maksimal 40 siswa per room).</span>
+                                    <span>Gunakan <strong>Live Chat Kelas</strong> untuk saling menyemangati teman sekelas (maksimal 40 siswa per room).</span>
                                 </li>
                             </ul>
                         </div>
-                        <div class="mt-4 bg-indigo-950/60 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-200">
-                            💡 <strong>Tips untuk Guru & Siswa:</strong> Klik <em>"Buat Room Baru (Guru)"</em> lalu bagikan 6 digit Kode Room ke papan tulis agar hingga 40 siswa bisa bergabung bersamaan!
+                        <div id="lobby-alert-box" class="mt-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-200">
+                            💡 <strong>Petunjuk Mabar Kelas:</strong> Guru menekan <em>"Buat Room Baru (Guru)"</em> lalu menuliskan 6 digit Kode Room di papan tulis agar hingga 40 siswa dapat bergabung serentak!
                         </div>
                     </div>
 
-                    <!-- Tampilan Saat Sudah Masuk Ruang Tunggu (Waiting Room) -->
+                    <!-- Tampilan Ruang Tunggu Room (Waiting Room) -->
                     <div id="lobby-waiting-room" class="hidden flex-1 flex flex-col justify-between">
                         <div>
                             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5 mb-3">
@@ -177,30 +176,29 @@
                                     <span class="text-[11px] text-slate-400 uppercase font-bold">Kode Room Kelas:</span>
                                     <div class="flex items-center gap-2">
                                         <span id="display-room-code" class="font-game text-2xl font-bold text-amber-400 tracking-widest">------</span>
-                                        <button id="btn-copy-code" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1 rounded-lg border border-slate-600">Salin</button>
+                                        <button id="btn-copy-code" type="button" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1 rounded-lg border border-slate-600 font-semibold">Salin</button>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-[11px] text-slate-400 uppercase font-bold">Kapasitas Kelas</span>
+                                    <span class="text-[11px] text-slate-400 uppercase font-bold">Kapasitas Room</span>
                                     <div id="lobby-player-count" class="font-game text-xl font-bold text-emerald-400">1 / 40 Siswa</div>
                                 </div>
                             </div>
 
-                            <!-- Daftar Siswa yang Sudah Masuk -->
                             <div class="text-xs font-semibold text-slate-400 mb-1.5">Peserta di Ruang Tunggu:</div>
-                            <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
-                                <!-- Daftar nama siswa muncul di sini -->
+                            <div id="lobby-players-list" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-44 overflow-y-auto pr-1">
+                                <!-- Daftar siswa muncul real-time -->
                             </div>
                         </div>
 
-                        <div class="pt-3 mt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-                            <button id="btn-leave-room" class="bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-700">
-                                Keluar Room
+                        <div class="pt-3 mt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                            <button id="btn-leave-room" type="button" class="bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-700">
+                                Keluar
                             </button>
                             <div id="waiting-level-badge" class="bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold px-3 py-2 rounded-xl">
-                                Level 1: Desa Pancasila
+                                🌄 Level 1: Desa Pancasila
                             </div>
-                            <button id="btn-start-race" class="btn-3d flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold py-2.5 px-4 rounded-xl text-base border-b-4 border-emerald-700">
+                            <button id="btn-start-race" type="button" class="btn-3d flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold py-2.5 px-4 rounded-xl text-sm sm:text-base border-b-4 border-emerald-700">
                                 🏁 MULAI BALAPAN!
                             </button>
                         </div>
@@ -216,7 +214,7 @@
     <!-- ===================================================================== -->
     <div id="hud-race" class="hidden fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-2.5 sm:p-4">
         
-        <!-- BARIS ATAS: Progres Lintasan, Skor PPKn, & Tombol Chat -->
+        <!-- BARIS ATAS: Status Pembalap, Progres Lintasan, & Tombol Chat/Klasemen -->
         <div class="flex flex-wrap items-start justify-between gap-2">
             
             <!-- Kartu Status Pembalap -->
@@ -241,7 +239,7 @@
                 </div>
             </div>
 
-            <!-- Bar Progres Jarak Menuju Finis (Tengah Atas) -->
+            <!-- Bar Progres Jarak Menuju Finis -->
             <div class="hidden md:flex flex-col flex-1 max-w-md bg-slate-900/90 backdrop-blur-md border-2 border-slate-700 rounded-2xl px-4 py-2 shadow-xl">
                 <div class="flex justify-between text-[11px] font-bold mb-1">
                     <span id="hud-circuit-title" class="text-sky-300">Sirkuit Desa Pancasila</span>
@@ -253,13 +251,13 @@
                 </div>
             </div>
 
-            <!-- Tombol Buka/Tutup Live Chat & Leaderboard -->
+            <!-- Tombol Buka/Tutup Klasemen & Live Chat -->
             <div class="flex items-center gap-2 pointer-events-auto">
-                <button id="btn-toggle-leaderboard" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-game font-bold px-3 py-2 rounded-xl text-xs sm:text-sm border-b-4 border-slate-950 flex items-center gap-1.5">
+                <button id="btn-toggle-leaderboard" type="button" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-game font-bold px-3 py-2 rounded-xl text-xs sm:text-sm border-b-4 border-slate-950 flex items-center gap-1.5">
                     <span>🏆</span>
                     <span class="hidden sm:inline">Klasemen</span>
                 </button>
-                <button id="btn-toggle-chat" class="btn-3d relative bg-indigo-600 hover:bg-indigo-500 text-white font-game font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm border-b-4 border-indigo-800 flex items-center gap-1.5">
+                <button id="btn-toggle-chat" type="button" class="btn-3d relative bg-indigo-600 hover:bg-indigo-500 text-white font-game font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm border-b-4 border-indigo-800 flex items-center gap-1.5">
                     <span>💬</span>
                     <span>Chat Kelas</span>
                     <span id="chat-unread-badge" class="hidden absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border border-white">!</span>
@@ -267,10 +265,10 @@
             </div>
         </div>
 
-        <!-- AREA TENGAH: Notifikasi Status Turbo / Pembahasan Singkat & Panel Samping (Leaderboard + Chat) -->
+        <!-- AREA TENGAH: Klasemen Live, Countdown/Banner Feedback, & Panel Live Chat -->
         <div class="relative flex-1 flex items-center justify-between my-2 overflow-hidden">
             
-            <!-- Kiri: Papan Klasemen Live Top 10 (Bisa disembunyikan di HP) -->
+            <!-- Kiri: Mini Klasemen Live Top 10 -->
             <div id="panel-leaderboard" class="hidden sm:flex flex-col w-56 max-h-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-xl pointer-events-auto">
                 <div class="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-2">
                     <span class="font-game text-xs font-bold text-amber-400">🏆 TOP 10 PEMBALAP</span>
@@ -281,41 +279,41 @@
                 </div>
             </div>
 
-            <!-- Tengah: Banner Feedback Jawaban / Turbo / Countdown -->
+            <!-- Tengah: Countdown & Banner Feedback -->
             <div class="flex-1 flex flex-col items-center justify-start pt-2 pointer-events-none px-2">
-                <div id="race-countdown" class="hidden font-game text-6xl sm:text-8xl font-bold text-amber-400 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] animate-bounce">
+                <div id="race-countdown" class="hidden font-game text-6xl sm:text-8xl font-bold text-amber-400 drop-shadow-[0_5px_5px_rgba(0,0,0,0.85)] animate-bounce">
                     3
                 </div>
                 <div id="race-feedback-banner" class="hidden max-w-md text-center px-4 py-2.5 rounded-2xl font-game text-sm sm:text-base font-bold shadow-2xl border-2 animate-pop">
                 </div>
             </div>
 
-            <!-- Kanan: Panel Live Chatting Kelas (Ramah Anak + Stiker Semangat) -->
+            <!-- Kanan: Panel Live Chatting Kelas -->
             <div id="panel-chat" class="flex flex-col w-72 sm:w-80 h-full max-h-[360px] bg-slate-900/92 backdrop-blur-md border-2 border-indigo-500/60 rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
                 <div class="bg-indigo-600/90 px-3 py-2 flex items-center justify-between border-b border-indigo-400/30">
                     <div class="flex items-center gap-1.5">
                         <span class="text-sm">💬</span>
                         <span class="font-game text-xs sm:text-sm font-bold text-white">Chat Kelas 6 (Ramah Anak)</span>
                     </div>
-                    <button id="btn-close-chat" class="text-white/80 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded bg-black/20">✕</button>
+                    <button id="btn-close-chat" type="button" class="text-white/80 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded bg-black/20">✕</button>
                 </div>
 
                 <!-- Daftar Pesan Chat -->
                 <div id="chat-messages" class="flex-1 p-2.5 overflow-y-auto space-y-1.5 text-xs">
                     <div class="bg-indigo-950/70 text-indigo-200 p-2 rounded-xl text-[11px] border border-indigo-500/20">
-                        👋 Selamat datang di Chat Kelas! Gunakan bahasa yang sopan dan saling menyemangati ya!
+                        👋 Selamat datang di Chat Kelas! Saling semangati dengan bahasa yang sopan ya!
                     </div>
                 </div>
 
-                <!-- Stiker Reaksi Cepat -->
-                <div class="px-2 py-1.5 bg-slate-950/70 border-t border-slate-800 flex gap-1 overflow-x-auto">
-                    <button class="quick-chat-btn shrink-0 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Semangat teman-teman! 🔥">Semangat! 🔥</button>
-                    <button class="quick-chat-btn shrink-0 bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Ayo maju terus! 🚀">Ayo maju! 🚀</button>
-                    <button class="quick-chat-btn shrink-0 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Merdeka! 🇮🇩">Merdeka! 🇮🇩</button>
-                    <button class="quick-chat-btn shrink-0 bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 border border-sky-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Keren sekali! 👏">Keren! 👏</button>
+                <!-- Stiker Semangat Instan -->
+                <div class="px-2 py-1.5 bg-slate-950/75 border-t border-slate-800 flex gap-1 overflow-x-auto">
+                    <button type="button" class="quick-chat-btn shrink-0 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Semangat! 🔥">Semangat! 🔥</button>
+                    <button type="button" class="quick-chat-btn shrink-0 bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Ayo maju! 🚀">Ayo maju! 🚀</button>
+                    <button type="button" class="quick-chat-btn shrink-0 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Merdeka! 🇮🇩">Merdeka! 🇮🇩</button>
+                    <button type="button" class="quick-chat-btn shrink-0 bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 border border-sky-500/40 rounded-lg px-2 py-1 text-[11px] font-semibold" data-msg="Keren! 👏">Keren! 👏</button>
                 </div>
 
-                <!-- Input Teks Chat -->
+                <!-- Form Input Pesan -->
                 <form id="chat-form" class="p-2 bg-slate-950 border-t border-slate-800 flex gap-1.5">
                     <input id="chat-input" type="text" maxlength="80" placeholder="Tulis pesan sopan..." 
                            class="flex-1 bg-slate-800 border border-slate-700 focus:border-indigo-400 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
@@ -326,27 +324,24 @@
             </div>
         </div>
 
-        <!-- BARIS BAWAH: Speedometer & Kontrol Belok (Mobile & Desktop) -->
+        <!-- BARIS BAWAH: Kontrol Belok Kiri/Kanan & Speedometer -->
         <div class="flex items-end justify-between gap-2">
-            <!-- Tombol Belok Kiri (Touch Friendly) -->
-            <button id="btn-steer-left" class="btn-3d pointer-events-auto bg-slate-900/85 active:bg-sky-500 text-white border-2 border-slate-600 w-16 h-16 sm:w-20 sm:h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl">
+            <button id="btn-steer-left" type="button" class="btn-3d pointer-events-auto bg-slate-900/90 active:bg-sky-500 text-white border-2 border-slate-600 w-16 h-16 sm:w-20 sm:h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl">
                 ◀
             </button>
 
-            <!-- Indikator Kecepatan & Status Mesin -->
             <div id="speed-panel" class="bg-slate-900/90 backdrop-blur-md border-2 border-slate-700 rounded-2xl px-4 py-2 text-center shadow-xl">
                 <div class="text-[10px] uppercase font-bold text-slate-400">Kecepatan Mobil</div>
                 <div class="flex items-baseline justify-center gap-1">
-                    <span id="hud-speed" class="font-game text-2xl sm:text-3xl font-bold text-sky-400">80</span>
+                    <span id="hud-speed" class="font-game text-2xl sm:text-3xl font-bold text-sky-400">85</span>
                     <span class="text-xs font-bold text-slate-400">km/j</span>
                 </div>
                 <div id="hud-status-pill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 mt-0.5">
-                    Normal (Gunakan ◀ / ▶)
+                    Normal (Gunakan ◀ / ▶ atau A / D)
                 </div>
             </div>
 
-            <!-- Tombol Belok Kanan (Touch Friendly) -->
-            <button id="btn-steer-right" class="btn-3d pointer-events-auto bg-slate-900/85 active:bg-sky-500 text-white border-2 border-slate-600 w-16 h-16 sm:w-20 sm:h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl">
+            <button id="btn-steer-right" type="button" class="btn-3d pointer-events-auto bg-slate-900/90 active:bg-sky-500 text-white border-2 border-slate-600 w-16 h-16 sm:w-20 sm:h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl">
                 ▶
             </button>
         </div>
@@ -368,12 +363,10 @@
                 Pertanyaan PPKn akan muncul di sini...
             </h2>
 
-            <!-- Pilihan Jawaban A, B, C, D -->
             <div id="quiz-options" class="space-y-2.5">
-                <!-- Tombol opsi dibuat via JS -->
+                <!-- Pilihan jawaban A, B, C, D -->
             </div>
 
-            <!-- Penjelasan Edukatif Setelah Menjawab -->
             <div id="quiz-explanation-box" class="hidden mt-4 p-3.5 rounded-2xl border text-xs sm:text-sm leading-relaxed">
             </div>
         </div>
@@ -392,21 +385,18 @@
 
             <!-- Podium Juara 1, 2, 3 -->
             <div class="grid grid-cols-3 gap-2 sm:gap-4 items-end mb-6 pt-4">
-                <!-- Juara 2 -->
                 <div class="bg-slate-800/90 border-2 border-slate-400 rounded-2xl p-3 text-center">
                     <div class="text-2xl sm:text-3xl mb-1">🥈</div>
                     <div class="text-[10px] font-bold text-slate-400 uppercase">Juara 2</div>
                     <div id="podium-2-name" class="font-game text-sm sm:text-base font-bold text-white truncate">-</div>
                     <div id="podium-2-score" class="text-xs font-bold text-sky-300 mt-0.5">0 Poin</div>
                 </div>
-                <!-- Juara 1 -->
                 <div class="bg-gradient-to-b from-amber-500/30 to-slate-800 border-2 border-amber-400 rounded-2xl p-4 text-center transform -translate-y-2 shadow-xl">
                     <div class="text-3xl sm:text-4xl mb-1">🥇</div>
                     <div class="text-xs font-bold text-amber-300 uppercase">Juara 1</div>
                     <div id="podium-1-name" class="font-game text-base sm:text-xl font-bold text-amber-300 truncate">-</div>
                     <div id="podium-1-score" class="text-xs sm:text-sm font-bold text-emerald-300 mt-0.5">0 Poin</div>
                 </div>
-                <!-- Juara 3 -->
                 <div class="bg-slate-800/90 border-2 border-amber-700 rounded-2xl p-3 text-center">
                     <div class="text-2xl sm:text-3xl mb-1">🥉</div>
                     <div class="text-[10px] font-bold text-amber-600 uppercase">Juara 3</div>
@@ -433,17 +423,17 @@
                             </tr>
                         </thead>
                         <tbody id="podium-table-body" class="divide-y divide-slate-800/60">
-                            <!-- Diisi via JS -->
+                            <!-- Diisi otomatis -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <div class="flex flex-wrap justify-center gap-3">
-                <button id="btn-back-lobby" class="btn-3d bg-slate-700 hover:bg-slate-600 text-white font-game font-bold py-3 px-5 rounded-2xl text-sm sm:text-base border-b-4 border-slate-900">
+                <button id="btn-back-lobby" type="button" class="btn-3d bg-slate-700 hover:bg-slate-600 text-white font-game font-bold py-3 px-5 rounded-2xl text-sm sm:text-base border-b-4 border-slate-900">
                     🏠 Kembali ke Lobi
                 </button>
-                <button id="btn-next-level" class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold py-3 px-6 rounded-2xl text-sm sm:text-base border-b-4 border-emerald-700">
+                <button id="btn-next-level" type="button" class="btn-3d bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold py-3 px-6 rounded-2xl text-sm sm:text-base border-b-4 border-emerald-700">
                     Lanjut ke Level Berikutnya ➡️
                 </button>
             </div>
@@ -451,22 +441,52 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- LOGIKA GAME 3D + BANK SOAL PPKn KELAS 6 + MULTIPLAYER FIRESTORE       -->
+    <!-- SCRIPT UTAMA: FIREBASE v11 + 3D ENGINE + 36 SOAL PPKn KELAS 6 SD      -->
     <!-- ===================================================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // 1. KONFIGURASI 3 LEVEL & BANK SOAL PPKn KELAS 6 SD (36 SOAL BERKUALITAS)
+        // 1. KONFIGURASI FIREBASE PROYEK game-ppkn-kelas6 (SIAP GITHUB PAGES)
         // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1FPCuzFj3ndct_sXRF4UGa1TGCcQU5aQ",
+            authDomain: "game-ppkn-kelas6.firebaseapp.com",
+            projectId: "game-ppkn-kelas6",
+            storageBucket: "game-ppkn-kelas6.firebasestorage.app",
+            messagingSenderId: "154624819448",
+            appId: "1:154624819448:web:3e4e218146bfdb248bbb0d"
+        };
+
+        const ROOT_COLLECTION = 'rooms_ppkn6';
+        const MAX_PLAYERS = 40;
+
+        let app = null;
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let isFirebaseReady = false;
+
+        // =========================================================================
+        // 2. DATA 6 MOBIL BALAP NUSANTARA & 3 LEVEL SIRKUIT
+        // =========================================================================
+        const CAR_MODELS = [
+            { id: 'garuda_merah',     name: 'Garuda Merah',     primary: 0xef4444, secondary: 0xffffff, emoji: '🦅' },
+            { id: 'elang_biru',       name: 'Elang Biru',       primary: 0x0284c7, secondary: 0x38bdf8, emoji: '🌊' },
+            { id: 'harimau_emas',     name: 'Harimau Emas',     primary: 0xf59e0b, secondary: 0x1e293b, emoji: '🐯' },
+            { id: 'komodo_hijau',     name: 'Komodo Hijau',     primary: 0x16a34a, secondary: 0xfacc15, emoji: '🦎' },
+            { id: 'cendrawasih_ungu', name: 'Cendrawasih Ungu', primary: 0x9333ea, secondary: 0xf472b6, emoji: '🦚' },
+            { id: 'badak_perak',      name: 'Badak Perak',      primary: 0x94a3b8, secondary: 0x0f172a, emoji: '🦏' }
+        ];
+
         const LEVELS_CONFIG = {
             1: {
                 id: 1,
                 shortName: "Level 1",
                 title: "Desa Pancasila",
-                fullTitle: "Level 1: Nilai-Nilai Pancasila (Pagi Cerah)",
+                fullTitle: "Level 1: Desa Pancasila (Sila 1–5)",
                 emoji: "🌄",
                 gatesCount: 6,
                 trackLength: 900,
@@ -484,7 +504,7 @@
                 id: 2,
                 shortName: "Level 2",
                 title: "Kota Konstitusi",
-                fullTitle: "Level 2: Hak & Kewajiban UUD 1945 (Sore Keemasan)",
+                fullTitle: "Level 2: Kota Konstitusi (Hak & Kewajiban UUD 1945)",
                 emoji: "🌇",
                 gatesCount: 8,
                 trackLength: 1200,
@@ -502,7 +522,7 @@
                 id: 3,
                 shortName: "Level 3",
                 title: "Nusantara Garuda",
-                fullTitle: "Level 3: Persatuan & Bhinneka Tunggal Ika (Malam Neon)",
+                fullTitle: "Level 3: Nusantara Garuda (Persatuan & Bhinneka Tunggal Ika)",
                 emoji: "🌃",
                 gatesCount: 10,
                 trackLength: 1500,
@@ -518,22 +538,22 @@
             }
         };
 
+        // =========================================================================
+        // 3. BANK SOAL LENGKAP PPKn KELAS 6 SD (36 SOAL = 12 SOAL PER LEVEL)
+        // =========================================================================
         const BANK_SOAL_BY_LEVEL = {
-            // =====================================================================
-            // LEVEL 1: NILAI-NILAI PANCASILA DALAM KEHIDUPAN SEHARI-HARI (12 SOAL)
-            // =====================================================================
             1: [
                 {
                     topik: "Sila Ke-1 Pancasila",
                     soal: "Ketika temanmu yang berbeda agama sedang berdoa sebelum makan di kantin sekolah, sikap yang paling tepat sesuai sila pertama Pancasila adalah...",
-                    opsi: ["Menunggu dengan tenang dan menghormatinya", "Mengajaknya mengobrol agar cepat selesai", "Menertawakan cara berdoanya", "Pura-pura tidak melihat dan pergi"],
+                    opsi: ["Menunggu dengan tenang dan menghormatinya", "Mengajaknya mengobrol agar cepat selesai", "Menertawakan cara berdoanya", "Pura-pura tidak melihat dan mengejeknya"],
                     benar: 0,
                     penjelasan: "Sila ke-1 (Ketuhanan Yang Maha Esa) mengajarkan kita untuk saling menghormati kebebasan beribadah antarumat beragama."
                 },
                 {
                     topik: "Sila Ke-2 Pancasila",
                     soal: "Rani melihat adik kelas terjatuh di halaman sekolah hingga lututnya terluka. Tindakan Rani yang mencerminkan sila kedua Pancasila adalah...",
-                    opsi: ["Segera menolong dan mengantarnya ke UKS", "Memanggil teman lain untuk menontonnya", "Membiarkannya bangun sendiri agar mandiri", "Menyalahkannya karena berlari terlalu cepat"],
+                    opsi: ["Segera menolong dan mengantarnya ke UKS", "Memanggil teman lain untuk menontonnya", "Membiarkannya menangis sendirian", "Menyalahkannya karena berlari terlalu cepat"],
                     benar: 0,
                     penjelasan: "Sila ke-2 (Kemanusiaan yang Adil dan Beradab) mendorong kita memiliki rasa empati dan gemar menolong sesama."
                 },
@@ -547,7 +567,7 @@
                 {
                     topik: "Sila Ke-4 Pancasila",
                     soal: "Kelas 6 akan mengadakan karya wisata. Untuk menentukan tujuan wisata secara adil sesuai sila keempat Pancasila, sebaiknya dilakukan...",
-                    opsi: ["Musyawarah kelas untuk mencapai mufakat", "Keputusan sepihak dari ketua kelas saja", "Mengikuti keinginan siswa yang paling kaya", "Membatalkan acara agar tidak ada perdebatan"],
+                    opsi: ["Musyawarah kelas untuk mencapai mufakat", "Keputusan sepihak dari ketua kelas saja", "Mengikuti keinginan siswa yang paling kaya", "Membatalkan acara agar tidak ada diskusi"],
                     benar: 0,
                     penjelasan: "Sila ke-4 mengajarkan penyelesaian masalah bersama melalui musyawarah untuk mufakat dengan menghargai setiap pendapat."
                 },
@@ -581,7 +601,7 @@
                 },
                 {
                     topik: "Sila Ke-4 Pancasila",
-                    soal: "Dalam rapat karang taruna atau diskusi kelompok di kelas, usulmu tidak terpilih sebagai keputusan akhir. Sikapmu yang sesuai sila keempat adalah...",
+                    soal: "Dalam rapat diskusi kelompok di kelas, usulmu tidak terpilih sebagai keputusan akhir. Sikapmu yang sesuai sila keempat adalah...",
                     opsi: ["Menerima dengan lapang dada dan ikut melaksanakan hasil keputusan", "Marah dan menolak bekerja sama dengan kelompok", "Mengejek keputusan yang sudah disepakati bersama", "Keluar dari kelompok tanpa pamit"],
                     benar: 0,
                     penjelasan: "Menghormati dan melaksanakan hasil keputusan musyawarah dengan ikhlas adalah ciri utama pengamalan Sila ke-4."
@@ -601,17 +621,13 @@
                     penjelasan: "Gotong royong memperkuat persatuan (Sila ke-3) sekaligus mewujudkan kesejahteraan dan keadilan bersama (Sila ke-5)."
                 },
                 {
-                    topik: "Sila Ke-2 & Ke-5 Pancasila",
+                    topik: "Sila Ke-2 Pancasila",
                     soal: "Tidak bersikap semena-mena kepada teman yang lebih kecil dan selalu bersikap santun kepada guru maupun petugas kebersihan sekolah sesuai sila ke-...",
                     opsi: ["Kedua", "Kesatu", "Keempat", "Ketiga"],
                     benar: 0,
                     penjelasan: "Sila ke-2 mengajarkan bahwa setiap manusia memiliki harkat dan martabat yang sama sehingga harus dihormati."
                 }
             ],
-
-            // =====================================================================
-            // LEVEL 2: HAK, KEWAJIBAN, & TANGGUNG JAWAB WARGA NEGARA (UUD 1945) (12 SOAL)
-            // =====================================================================
             2: [
                 {
                     topik: "UUD 1945 Pasal 31",
@@ -698,10 +714,6 @@
                     penjelasan: "Jujur dan amanah dalam mengelola kepercayaan orang lain adalah ciri warga negara yang bertanggung jawab."
                 }
             ],
-
-            // =====================================================================
-            // LEVEL 3: PERSATUAN, KESATUAN & BHINNEKA TUNGGAL IKA (12 SOAL)
-            // =====================================================================
             3: [
                 {
                     topik: "Makna Bhinneka Tunggal Ika",
@@ -711,7 +723,7 @@
                     penjelasan: "Bhinneka Tunggal Ika berarti berbeda-beda tetapi tetap satu jua, menjadi dasar persatuan bangsa Indonesia."
                 },
                 {
-                    topik: "Persatuan & Kesatuan Bangsa",
+                    topik: "Sumpah Pemuda 1928",
                     soal: "Peristiwa bersejarah pada tanggal 28 Oktober 1928 yang mempersatukan pemuda dari berbagai daerah di Indonesia dalam satu tanah air, satu bangsa, dan satu bahasa adalah...",
                     opsi: ["Sumpah Pemuda", "Proklamasi Kemerdekaan", "Kebangkitan Nasional", "Bandung Lautan Api"],
                     benar: 0,
@@ -732,14 +744,14 @@
                     penjelasan: "Persatuan dan kesatuan menciptakan stabilitas nasional sehingga pembangunan dan kesejahteraan rakyat terwujud."
                 },
                 {
-                    topik: "Studi Kasus Konflik Sosial",
+                    topik: "Bijak Bermedia Sosial",
                     soal: "Di media sosial beredar berita bohong (hoaks) yang menjelek-jelekkan salah satu suku di Indonesia. Sikap bijak pelajar kelas 6 yang menjunjung persatuan adalah...",
                     opsi: ["Tidak menyebarkan berita tersebut dan mengecek kebenarannya", "Langsung membagikan ke semua grup kelas", "Ikut menulis komentar kasar yang memprovokasi", "Mempercayainya tanpa mencari fakta"],
                     benar: 0,
                     penjelasan: "Menyaring informasi dan tidak menyebarkan hoaks SARA mencegah perpecahan di tengah masyarakat."
                 },
                 {
-                    topik: "Kerja Sama & Cinta Tanah Air",
+                    topik: "Kerja Sama ASEAN",
                     soal: "Indonesia aktif bekerja sama dengan negara-negara tetangga di kawasan Asia Tenggara melalui organisasi...",
                     opsi: ["ASEAN", "PBB saja", "OPEC", "NATO"],
                     benar: 0,
@@ -790,16 +802,7 @@
             ]
         };
 
-        // =========================================================================
-        // 2. DATA MOBIL BALAP NUSANTARA & FILTER KATA RAMAH ANAK
-        // =========================================================================
-        const CAR_MODELS = [
-            { id: 'merahputih', name: 'Merah Putih', primary: 0xef4444, secondary: 0xffffff, emoji: '🇮🇩' },
-            { id: 'garuda',     name: 'Garuda Emas', primary: 0xf59e0b, secondary: 0x1e293b, emoji: '🦅' },
-            { id: 'nusantara',  name: 'Biru Samudra', primary: 0x0284c7, secondary: 0x38bdf8, emoji: '🌊' },
-            { id: 'bhinneka',   name: 'Hijau Khatulistiwa', primary: 0x16a34a, secondary: 0xfacc15, emoji: '🌴' }
-        ];
-
+        // Filter Kata Ramah Anak untuk Live Chat & Nama Siswa
         const BAD_WORDS = ['bodoh', 'goblok', 'anjing', 'babi', 'tolol', 'bangsat', 'kampret', 'jelek', 'curang', 'mati', 'bego', 'idiot'];
         function filterKidFriendlyText(text) {
             let clean = text.trim();
@@ -811,25 +814,18 @@
         }
 
         // =========================================================================
-        // 3. STATE APLIKASI & MULTIPLAYER FIREBASE
+        // 4. STATE APLIKASI & MULTIPLAYER
         // =========================================================================
-        const MAX_PLAYERS = 40;
-
-        let app, db, auth, currentUser = null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'balap-ppkn-sd6';
-        let isFirebaseReady = false;
-
         const gameState = {
-            mode: 'none', // 'multiplayer' atau 'solo'
+            mode: 'none', // 'multiplayer' | 'solo'
             roomCode: '',
             isHost: false,
-            selectedLevel: 1, // 1, 2, atau 3
-            playerId: 'player_' + Math.random().toString(36).substring(2, 9),
+            selectedLevel: 1,
+            playerId: 'siswa_' + Math.random().toString(36).substring(2, 9),
             playerName: '',
             selectedCar: CAR_MODELS[0],
-            
-            // Status Balapan Lokal
-            status: 'lobby', // 'lobby', 'countdown', 'racing', 'quiz', 'finished'
+
+            status: 'lobby', // 'lobby' | 'countdown' | 'racing' | 'quiz' | 'finished'
             distance: 0,
             laneX: 0,
             targetLaneX: 0,
@@ -838,13 +834,10 @@
             slowTimer: 0,
             score: 0,
             correctCount: 0,
-            answeredCount: 0,
             gatesSpawned: 0,
             nextGateDist: 120,
             usedQuestionIndices: [],
-            finishTime: null,
 
-            // Data Semua Pemain di Room (Max 40) & Bot AI
             playersMap: {},
             unsubRoom: null,
             unsubPlayers: null,
@@ -853,53 +846,43 @@
         };
 
         // =========================================================================
-        // 4. INISIALISASI FIREBASE AUTH & FIRESTORE
+        // 5. INISIALISASI FIREBASE (DENGAN FALLBACK GRACEFUL UNTUK OFFLINE)
         // =========================================================================
         async function initFirebase() {
             const dot = document.getElementById('conn-dot');
             const txt = document.getElementById('conn-text');
             try {
-                if (typeof __firebase_config === 'undefined') {
-                    throw new Error("Konfigurasi server tidak ditemukan, gunakan Mode Latihan.");
-                }
-                const firebaseConfig = JSON.parse(__firebase_config);
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
+                await signInAnonymously(auth);
                 currentUser = auth.currentUser;
                 if (currentUser) {
                     gameState.playerId = currentUser.uid;
                 }
                 isFirebaseReady = true;
                 dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
-                txt.textContent = "Server Kelas Online (Siap 40 Siswa)";
+                txt.textContent = "Server Online (Siap 40 Siswa)";
             } catch (err) {
-                console.warn("Firebase fallback ke mode lokal:", err);
+                console.warn("Mode Offline aktif (Firebase tidak terjangkau):", err);
                 isFirebaseReady = false;
                 dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
-                txt.textContent = "Mode Offline / Latihan Bot Siap";
+                txt.textContent = "Mode Offline (Latihan Bot Siap)";
             }
         }
 
         // =========================================================================
-        // 5. ENGINE 3D BALAPAN (THREE.JS - TEMA DINAMIS PER LEVEL)
+        // 6. ENGINE 3D SIRKUIT BALAP (THREE.JS)
         // =========================================================================
         let scene, camera, renderer, ambientLight, dirLight;
         let groundMesh, roadMesh;
         let playerCarMesh, turboFlameGroup;
         let opponentMeshes = {};
-        let roadStripes = [];
         let quizGates = [];
         let sceneryObjects = [];
-        let trackObstacles = []; // Kerucut lalu lintas (Level 2 & 3)
-        let boostPads = [];      // Zona percepatan aspal (Level 3)
+        let trackObstacles = [];
+        let boostPads = [];
         let finishLineGroup;
 
         function init3DWorld() {
@@ -926,19 +909,21 @@
             dirLight.castShadow = true;
             scene.add(dirLight);
 
-            // Tanah Rumput / Lingkungan Samping
-            const grassGeo = new THREE.PlaneGeometry(300, 420);
-            const grassMat = new THREE.MeshLambertMaterial({ color: 0x22c55e });
-            groundMesh = new THREE.Mesh(grassGeo, grassMat);
+            // Tanah Lingkungan Samping
+            groundMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(300, 420),
+                new THREE.MeshLambertMaterial({ color: 0x22c55e })
+            );
             groundMesh.rotation.x = -Math.PI / 2;
             groundMesh.position.set(0, -0.05, -120);
             groundMesh.receiveShadow = true;
             scene.add(groundMesh);
 
             // Jalan Raya Aspal
-            const roadGeo = new THREE.PlaneGeometry(16, 420);
-            const roadMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
-            roadMesh = new THREE.Mesh(roadGeo, roadMat);
+            roadMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(16, 420),
+                new THREE.MeshLambertMaterial({ color: 0x334155 })
+            );
             roadMesh.rotation.x = -Math.PI / 2;
             roadMesh.position.set(0, 0, -120);
             roadMesh.receiveShadow = true;
@@ -966,7 +951,6 @@
                         stripe.rotation.x = -Math.PI / 2;
                         stripe.position.set(laneLineX, 0.02, z);
                         scene.add(stripe);
-                        roadStripes.push(stripe);
                     });
                 }
             }
@@ -979,7 +963,6 @@
             scene.add(playerCarMesh);
         }
 
-        // Mengubah Suasana 3D, Dekorasi Samping, Kerucut Rintangan, & Boost Pad sesuai Level
         function applyLevelEnvironment3D(levelId) {
             const cfg = LEVELS_CONFIG[levelId] || LEVELS_CONFIG[1];
 
@@ -989,7 +972,6 @@
             roadMesh.material.color.setHex(cfg.roadColor);
             ambientLight.intensity = cfg.ambientIntensity;
 
-            // Bersihkan dekorasi & rintangan lama
             sceneryObjects.forEach(obj => scene.remove(obj));
             sceneryObjects = [];
             trackObstacles.forEach(obs => scene.remove(obs.mesh));
@@ -997,7 +979,6 @@
             boostPads.forEach(bp => scene.remove(bp.mesh));
             boostPads = [];
 
-            // Bangun Dekorasi Samping sesuai Tema Level
             for (let z = 10; z > -250; z -= 18) {
                 createLevelScenery(-12.5, z, levelId);
                 createLevelScenery(12.5, z - 9, levelId);
@@ -1021,7 +1002,7 @@
                 }
             }
 
-            // Zona Boost Pad Neon di Aspal (Khusus Level 3)
+            // Zona Turbo Boost di Aspal (Khusus Level 3)
             if (cfg.hasBoostPads) {
                 for (let i = 0; i < 6; i++) {
                     const worldDist = 230 + i * 195;
@@ -1043,14 +1024,12 @@
             const group = new THREE.Group();
 
             if (levelId === 1) {
-                // Level 1: Pohon Hijau & Rumah Desa Pancasila
                 const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 0.8), new THREE.MeshLambertMaterial({ color: 0x78350f }));
                 trunk.position.y = 1.1;
                 const leaves = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.6), new THREE.MeshLambertMaterial({ color: 0x15803d }));
                 leaves.position.y = 3.2;
                 group.add(trunk, leaves);
             } else if (levelId === 2) {
-                // Level 2: Gedung Kota Konstitusi & Pilar Monumen
                 const h = 5 + (Math.abs(z) % 5);
                 const building = new THREE.Mesh(
                     new THREE.BoxGeometry(3.4, h, 3.4),
@@ -1061,7 +1040,6 @@
                 roof.position.y = h + 0.2;
                 group.add(building, roof);
             } else {
-                // Level 3: Menara Stadion Malam Neon Merah-Putih
                 const tower = new THREE.Mesh(new THREE.BoxGeometry(1.4, 7.5, 1.4), new THREE.MeshLambertMaterial({ color: 0x1e293b }));
                 tower.position.y = 3.75;
                 const neonRing = new THREE.Mesh(
@@ -1072,7 +1050,6 @@
                 group.add(tower, neonRing);
             }
 
-            // Tiang Bendera Merah Putih di setiap level
             if (Math.abs(z) % 36 < 18) {
                 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 5.5), new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }));
                 pole.position.set(x > 0 ? -1.8 : 1.8, 2.75, 0);
@@ -1131,7 +1108,6 @@
             const topBanner = new THREE.Mesh(new THREE.BoxGeometry(16, 1.3, 0.9), bannerMat);
             topBanner.position.set(0, 5.2, 0);
 
-            // Tirai energi transparan tempat mobil melintas
             const portalScreen = new THREE.Mesh(
                 new THREE.PlaneGeometry(14.5, 4.5),
                 new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.25, side: THREE.DoubleSide })
@@ -1156,7 +1132,6 @@
             const arch = new THREE.Mesh(new THREE.BoxGeometry(16.6, 1.6, 1.2), new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
             arch.position.set(0, 6.5, 0);
 
-            // Karpet kotak-kotak hitam putih di aspal
             const checker = new THREE.Mesh(
                 new THREE.PlaneGeometry(15.5, 3),
                 new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -1165,11 +1140,10 @@
             checker.position.set(0, 0.03, 0);
 
             finishLineGroup.add(pLeft, pRight, arch, checker);
-            finishLineGroup.position.set(0, 0, -TRACK_LENGTH);
+            finishLineGroup.position.set(0, 0, -900);
             scene.add(finishLineGroup);
         }
 
-        // Membuat Mobil Balap Blocky + Label Nama di Atas Mobil
         function createBlockyCarMesh(carModel, playerName, isMainPlayer = false) {
             const carGroup = new THREE.Group();
 
@@ -1177,29 +1151,24 @@
             const accentMat = new THREE.MeshLambertMaterial({ color: carModel.secondary });
             const wheelMat = new THREE.MeshLambertMaterial({ color: 0x0f172a });
 
-            // Sasis Bawah
             const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.55, 3.0), bodyMat);
             chassis.position.y = 0.5;
             chassis.castShadow = true;
             carGroup.add(chassis);
 
-            // Kabin Atas
             const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.5, 1.5), accentMat);
             cabin.position.set(0, 0.95, 0.15);
             cabin.castShadow = true;
             carGroup.add(cabin);
 
-            // Spoiler Belakang
             const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.15, 0.4), accentMat);
             spoiler.position.set(0, 1.05, 1.3);
             carGroup.add(spoiler);
 
-            // Kepala Pengemudi Blocky Kuning (Gaya Roblox)
             const driverHead = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
             driverHead.position.set(0, 1.25, 0.1);
             carGroup.add(driverHead);
 
-            // 4 Roda
             const wheelGeo = new THREE.BoxGeometry(0.32, 0.55, 0.65);
             const wheels = [];
             [[-0.9, 0.32, -0.9], [0.9, 0.32, -0.9], [-0.9, 0.32, 0.9], [0.9, 0.32, 0.9]].forEach(pos => {
@@ -1210,7 +1179,6 @@
             });
             carGroup.userData.wheels = wheels;
 
-            // Efek Api Knalpot Turbo (Khusus mobil utama)
             if (isMainPlayer) {
                 turboFlameGroup = new THREE.Group();
                 const flame1 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 1.1), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
@@ -1222,12 +1190,9 @@
                 carGroup.add(turboFlameGroup);
             }
 
-            // Sprite Nama Siswa di Atas Mobil
             const nameSprite = createNameTagSprite(playerName, isMainPlayer);
             nameSprite.position.set(0, 2.15, 0);
             carGroup.add(nameSprite);
-            carGroup.userData.nameSprite = nameSprite;
-            carGroup.userData.carId = carModel.id;
 
             return carGroup;
         }
@@ -1238,7 +1203,7 @@
             canvas.height = 64;
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = isMain ? 'rgba(16, 185, 129, 0.9)' : 'rgba(15, 23, 42, 0.82)';
+            ctx.fillStyle = isMain ? 'rgba(16, 185, 129, 0.92)' : 'rgba(15, 23, 42, 0.85)';
             ctx.beginPath();
             ctx.roundRect(16, 10, 224, 44, 16);
             ctx.fill();
@@ -1264,7 +1229,7 @@
         }
 
         // =========================================================================
-        // 6. LOGIKA LOBBY, ROOM MULTIPLAYER (40 SISWA), & BOT AI
+        // 7. LOGIKA LOBI MULTIPLAYER (ROOT COLLECTION 'rooms_ppkn6') & BOT AI
         // =========================================================================
         function generateRoomCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1286,84 +1251,106 @@
             return filterKidFriendlyText(raw);
         }
 
-        // Membuat Room Baru (Untuk Guru / Ketua Kelas)
-        async function createMultiplayerRoom() {
-            if (!isFirebaseReady || !currentUser) {
-                alertInlineLobby("Server online belum tersambung. Silakan coba Mode Latihan (vs Bot AI)!");
-                return;
-            }
-            gameState.playerName = getValidatedPlayerName();
-            gameState.roomCode = generateRoomCode();
-            gameState.mode = 'multiplayer';
-            gameState.isHost = true;
-
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ppkn_rooms', gameState.roomCode);
-            await setDoc(roomRef, {
-                roomCode: gameState.roomCode,
-                hostId: gameState.playerId,
-                level: gameState.selectedLevel,
-                status: 'waiting', // 'waiting' | 'racing'
-                createdAt: serverTimestamp()
-            });
-
-            await joinPlayerToFirestoreRoom(gameState.roomCode);
-            enterWaitingRoomUI();
+        function showLobbyAlert(msg, isError = true) {
+            const box = document.getElementById('lobby-alert-box');
+            box.className = isError
+                ? "mt-3 bg-rose-950/90 border border-rose-500/60 rounded-xl p-3 text-xs text-rose-200 animate-pop"
+                : "mt-3 bg-indigo-950/70 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-200";
+            box.innerHTML = isError ? `⚠️ <strong>Perhatian:</strong> ${msg}` : msg;
         }
 
-        // Gabung ke Room yang Sudah Ada
+        // Membuat Room Baru (Untuk Guru / Host)
+        async function createMultiplayerRoom() {
+            if (!isFirebaseReady || !currentUser) {
+                showLobbyAlert("Koneksi server sedang offline. Gunakan tombol <strong>Latihan Solo (vs Bot AI)</strong> untuk langsung bermain!");
+                return;
+            }
+
+            const btnCreate = document.getElementById('btn-create-room');
+            btnCreate.disabled = true;
+
+            try {
+                gameState.playerName = getValidatedPlayerName();
+                gameState.roomCode = generateRoomCode();
+                gameState.mode = 'multiplayer';
+                gameState.isHost = true;
+
+                const roomRef = doc(db, ROOT_COLLECTION, gameState.roomCode);
+                await setDoc(roomRef, {
+                    roomCode: gameState.roomCode,
+                    hostId: gameState.playerId,
+                    level: gameState.selectedLevel,
+                    status: 'waiting',
+                    createdAt: serverTimestamp()
+                });
+
+                await joinPlayerToFirestoreRoom(gameState.roomCode);
+                enterWaitingRoomUI();
+            } catch (err) {
+                console.error("Gagal membuat room:", err);
+                showLobbyAlert("Gagal membuat room di server. Periksa aturan Firestore atau gunakan Mode Latihan Solo.");
+            } finally {
+                btnCreate.disabled = false;
+            }
+        }
+
+        // Gabung ke Room yang Sudah Ada (Maksimal 40 Siswa)
         async function joinMultiplayerRoom() {
             if (!isFirebaseReady || !currentUser) {
-                alertInlineLobby("Server online belum tersambung. Gunakan Mode Latihan (vs Bot AI)!");
+                showLobbyAlert("Koneksi server sedang offline. Gunakan tombol <strong>Latihan Solo (vs Bot AI)</strong>!");
                 return;
             }
+
             const code = document.getElementById('input-room-code').value.trim().toUpperCase();
             if (code.length < 4) {
-                alertInlineLobby("Masukkan 6 digit Kode Room dari gurumu!");
+                showLobbyAlert("Masukkan 6 digit Kode Room yang diberikan gurumu!");
                 return;
             }
 
-            gameState.playerName = getValidatedPlayerName();
-            gameState.roomCode = code;
-            gameState.mode = 'multiplayer';
-            gameState.isHost = false;
+            const btnJoin = document.getElementById('btn-join-room');
+            btnJoin.disabled = true;
 
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ppkn_rooms', code);
-            const roomSnap = await getDoc(roomRef);
+            try {
+                gameState.playerName = getValidatedPlayerName();
+                gameState.roomCode = code;
+                gameState.mode = 'multiplayer';
+                gameState.isHost = false;
 
-            if (!roomSnap.exists()) {
-                alertInlineLobby(`Room "${code}" tidak ditemukan. Periksa kembali kodenya!`);
-                return;
-            }
+                const roomRef = doc(db, ROOT_COLLECTION, code);
+                const roomSnap = await getDoc(roomRef);
 
-            const roomData = roomSnap.data();
-            if (roomData.level && LEVELS_CONFIG[roomData.level]) {
-                selectGameLevel(roomData.level, false);
-            }
+                if (!roomSnap.exists()) {
+                    showLobbyAlert(`Room dengan kode <strong>"${code}"</strong> tidak ditemukan. Periksa kembali huruf/angkanya!`);
+                    return;
+                }
 
-            // Cek kapasitas maksimal 40 siswa
-            const currentCount = Object.keys(gameState.playersMap).length;
-            if (currentCount >= MAX_PLAYERS) {
-                alertInlineLobby("Maaf, ruangan sudah penuh (Maksimal 40 siswa)!");
-                return;
-            }
+                const roomData = roomSnap.data();
+                if (roomData.level && LEVELS_CONFIG[roomData.level]) {
+                    selectGameLevel(roomData.level, false);
+                }
 
-            await joinPlayerToFirestoreRoom(code);
-            enterWaitingRoomUI();
+                await joinPlayerToFirestoreRoom(code);
+                enterWaitingRoomUI();
 
-            // Jika balapan di room sudah dimulai guru, langsung ikut meluncur!
-            if (roomData.status === 'racing') {
-                startRaceSequence();
+                if (roomData.status === 'racing') {
+                    startRaceSequence();
+                }
+            } catch (err) {
+                console.error("Gagal gabung room:", err);
+                showLobbyAlert("Gagal bergabung ke room. Pastikan koneksi internet stabil.");
+            } finally {
+                btnJoin.disabled = false;
             }
         }
 
         async function joinPlayerToFirestoreRoom(code) {
-            const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', `ppkn_players_${code}`, gameState.playerId);
+            const playerDocRef = doc(db, ROOT_COLLECTION, code, 'players', gameState.playerId);
             await setDoc(playerDocRef, {
                 id: gameState.playerId,
                 name: gameState.playerName,
                 carId: gameState.selectedCar.id,
                 distance: 0,
-                laneX: (Math.random() - 0.5) * 10,
+                laneX: Number(((Math.random() - 0.5) * 10).toFixed(2)),
                 score: 0,
                 correctCount: 0,
                 finished: false,
@@ -1377,8 +1364,8 @@
         function subscribeToRoomUpdates(code) {
             cleanupListeners();
 
-            // 1. Pantau Status Room & Level Pilihan Host
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ppkn_rooms', code);
+            // 1. Pantau Status Room & Level Pilihan Guru
+            const roomRef = doc(db, ROOT_COLLECTION, code);
             gameState.unsubRoom = onSnapshot(roomRef, (snap) => {
                 if (!snap.exists()) return;
                 const data = snap.data();
@@ -1388,32 +1375,35 @@
                 if (data.status === 'racing' && gameState.status === 'lobby') {
                     startRaceSequence();
                 }
-            }, (err) => console.error("Room listener error:", err));
+            }, (err) => console.error("Room snapshot error:", err));
 
             // 2. Pantau Daftar Pemain (Hingga 40 Siswa)
-            const playersCol = collection(db, 'artifacts', appId, 'public', 'data', `ppkn_players_${code}`);
+            const playersCol = collection(db, ROOT_COLLECTION, code, 'players');
             gameState.unsubPlayers = onSnapshot(playersCol, (snapshot) => {
                 const updatedMap = {};
+                let count = 0;
                 snapshot.forEach(docSnap => {
-                    updatedMap[docSnap.id] = docSnap.data();
+                    if (count < MAX_PLAYERS || docSnap.id === gameState.playerId) {
+                        updatedMap[docSnap.id] = docSnap.data();
+                        count++;
+                    }
                 });
                 gameState.playersMap = updatedMap;
                 renderWaitingRoomPlayers();
                 updateOpponent3DCars();
                 renderLeaderboard();
-            }, (err) => console.error("Players listener error:", err));
+            }, (err) => console.error("Players snapshot error:", err));
 
             // 3. Pantau Live Chat Kelas
-            const chatCol = collection(db, 'artifacts', appId, 'public', 'data', `ppkn_chat_${code}`);
+            const chatCol = collection(db, ROOT_COLLECTION, code, 'chat');
             gameState.unsubChat = onSnapshot(chatCol, (snapshot) => {
                 const msgs = [];
                 snapshot.forEach(docSnap => {
                     msgs.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                // Urutkan berdasarkan waktu clientTimestamp di memori (Sesuai aturan Firestore)
                 msgs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-                renderChatMessages(msgs.slice(-40));
-            }, (err) => console.error("Chat listener error:", err));
+                renderChatMessages(msgs.slice(-45));
+            }, (err) => console.error("Chat snapshot error:", err));
         }
 
         function enterWaitingRoomUI() {
@@ -1445,30 +1435,19 @@
             });
         }
 
-        function alertInlineLobby(msg) {
-            const guide = document.getElementById('lobby-guide');
-            guide.classList.remove('hidden');
-            const banner = document.createElement('div');
-            banner.className = "mt-3 bg-rose-600/90 text-white text-xs font-bold px-3 py-2 rounded-xl animate-pop";
-            banner.textContent = "⚠️ " + msg;
-            guide.appendChild(banner);
-            setTimeout(() => banner.remove(), 3500);
-        }
-
         // =========================================================================
-        // 7. MODE LATIHAN SOLO (DENGAN 7 BOT AI PINTAR + SIMULASI CHAT KELAS)
+        // 8. MODE LATIHAN SOLO (VS 7 BOT AI + SIMULASI CHAT KELAS)
         // =========================================================================
         function startSoloBotMode() {
             cleanupListeners();
             gameState.mode = 'solo';
-            gameState.roomCode = 'LATIHAN';
+            gameState.roomCode = 'SOLO';
             gameState.playerName = getValidatedPlayerName();
             updatePlayerCarAppearance();
 
             const lvlCfg = LEVELS_CONFIG[gameState.selectedLevel];
             const [minBotSpd, maxBotSpd] = lvlCfg.botSpeedRange;
 
-            // Buat 7 Bot AI teman sekelas simulasi sesuai level kecepatan
             const botNames = ['Aisyah_6A', 'Rizky_6B', 'Nadia_6A', 'Dimas_6C', 'Putri_6B', 'Fajar_6A', 'Siti_6C'];
             const map = {};
             map[gameState.playerId] = {
@@ -1503,25 +1482,22 @@
             gameState.playersMap = map;
             startRaceSequence();
 
-            // Simulasi pesan semangat dari bot di chat
             setTimeout(() => {
                 if (gameState.status === 'racing' || gameState.status === 'quiz') {
-                    appendLocalChatMessage('Aisyah_6A', `Semangat teman-teman di ${lvlCfg.title}! 🇮🇩`);
+                    appendLocalChatMessage('Aisyah_6A', `Semangat balapan di ${lvlCfg.title}! 🇮🇩`);
                 }
-            }, 3500);
+            }, 3000);
         }
 
         // =========================================================================
-        // 8. ALUR BALAPAN & GERBANG KUIS PPKn
+        // 9. ALUR BALAPAN & GERBANG KUIS PPKn KELAS 6 SD
         // =========================================================================
         function startRaceSequence() {
             const lvlCfg = LEVELS_CONFIG[gameState.selectedLevel] || LEVELS_CONFIG[1];
             const gateSpacing = Math.floor((lvlCfg.trackLength - 140) / lvlCfg.gatesCount);
 
-            // Terapkan lingkungan 3D sesuai level yang dipilih
             applyLevelEnvironment3D(gameState.selectedLevel);
 
-            // Reset variabel balapan
             gameState.status = 'countdown';
             gameState.distance = 0;
             gameState.laneX = (Math.random() - 0.5) * 6;
@@ -1531,13 +1507,10 @@
             gameState.slowTimer = 0;
             gameState.score = 0;
             gameState.correctCount = 0;
-            gameState.answeredCount = 0;
             gameState.gatesSpawned = 0;
             gameState.nextGateDist = gateSpacing;
             gameState.usedQuestionIndices = [];
-            gameState.finishTime = null;
 
-            // Tampilkan HUD Balapan & Sembunyikan Lobi
             document.getElementById('screen-lobby').classList.add('hidden');
             document.getElementById('screen-podium').classList.add('hidden');
             document.getElementById('hud-race').classList.remove('hidden');
@@ -1549,7 +1522,6 @@
             document.getElementById('hud-player-name').textContent = gameState.playerName;
             document.getElementById('hud-score').textContent = '0';
 
-            // Hitung mundur 3 - 2 - 1 - MULAI!
             const cdEl = document.getElementById('race-countdown');
             cdEl.classList.remove('hidden');
             let count = 3;
@@ -1575,11 +1547,10 @@
             if (gameState.syncInterval) clearInterval(gameState.syncInterval);
             if (gameState.mode !== 'multiplayer' || !isFirebaseReady) return;
 
-            // Sinkronisasi posisi & skor ke Firestore setiap 350ms (ringan & hemat kuota)
             gameState.syncInterval = setInterval(async () => {
                 if (gameState.status === 'lobby') return;
                 try {
-                    const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', `ppkn_players_${gameState.roomCode}`, gameState.playerId);
+                    const playerDocRef = doc(db, ROOT_COLLECTION, gameState.roomCode, 'players', gameState.playerId);
                     await updateDoc(playerDocRef, {
                         distance: Math.round(gameState.distance),
                         laneX: Number(gameState.laneX.toFixed(2)),
@@ -1588,18 +1559,16 @@
                         finished: gameState.status === 'finished',
                         updatedAt: Date.now()
                     });
-                } catch (e) {
-                    // Abaikan error jaringan sesaat
-                }
+                } catch (e) {}
             }, 350);
-        // Memunculkan Soal PPKn Kelas 6 SD sesuai Level saat Melewati Gerbang Kuis
+        }
+
         function triggerPPKnQuiz() {
             gameState.status = 'quiz';
-            gameState.currentSpeed = 6; // Mobil melambat halus saat membaca soal
+            gameState.currentSpeed = 6;
 
             const levelBank = BANK_SOAL_BY_LEVEL[gameState.selectedLevel] || BANK_SOAL_BY_LEVEL[1];
 
-            // Pilih soal acak tanpa duplikasi dalam satu balapan
             if (gameState.usedQuestionIndices.length >= levelBank.length) {
                 gameState.usedQuestionIndices = [];
             }
@@ -1622,6 +1591,7 @@
             const letters = ['A', 'B', 'C', 'D'];
             qData.opsi.forEach((optText, index) => {
                 const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.className = "btn-3d w-full text-left bg-slate-800 hover:bg-sky-600/40 border-2 border-slate-700 hover:border-sky-400 rounded-2xl p-3 text-xs sm:text-sm font-semibold text-white flex items-center gap-3 transition";
                 btn.innerHTML = `
                     <span class="w-7 h-7 rounded-xl bg-slate-950 text-amber-400 font-game font-bold flex items-center justify-center shrink-0 border border-slate-700">${letters[index]}</span>
@@ -1635,7 +1605,6 @@
         }
 
         function handleQuizAnswer(selectedIndex, qData, optionsContainer, expBox, modal) {
-            // Nonaktifkan semua tombol opsi agar tidak klik ganda
             const buttons = optionsContainer.querySelectorAll('button');
             buttons.forEach((b, idx) => {
                 b.disabled = true;
@@ -1646,37 +1615,35 @@
                 }
             });
 
-            gameState.answeredCount++;
             const isCorrect = selectedIndex === qData.benar;
 
             if (isCorrect) {
                 gameState.score += 100;
                 gameState.correctCount++;
-                gameState.turboTimer = 3.5; // 3.5 detik Turbo Boost!
+                gameState.turboTimer = 3.5;
                 gameState.slowTimer = 0;
 
-                expBox.className = "mt-4 p-3.5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/80 text-emerald-100 text-xs sm:text-sm";
+                expBox.className = "mt-4 p-3.5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/85 text-emerald-100 text-xs sm:text-sm";
                 expBox.innerHTML = `<strong>🔥 BENAR (+100 Poin & TURBO BOOST)!</strong><br>${qData.penjelasan}`;
                 showRaceFeedback("🔥 JAWABAN BENAR! TURBO AKTIF!", "bg-emerald-600 border-emerald-300 text-white");
             } else {
-                gameState.slowTimer = 2.5; // Melambat 2.5 detik
+                gameState.slowTimer = 2.5;
                 gameState.turboTimer = 0;
 
-                expBox.className = "mt-4 p-3.5 rounded-2xl border-2 border-rose-400 bg-rose-950/80 text-rose-100 text-xs sm:text-sm";
+                expBox.className = "mt-4 p-3.5 rounded-2xl border-2 border-rose-400 bg-rose-950/85 text-rose-100 text-xs sm:text-sm";
                 expBox.innerHTML = `<strong>💡 Kurang Tepat (Mobil Melambat):</strong><br>${qData.penjelasan}`;
-                showRaceFeedback("⚠️ Jawaban Salah! Pelajari penjelasannya ya.", "bg-rose-600 border-rose-300 text-white");
+                showRaceFeedback("⚠️ Jawaban Salah! Pelajari pembahasannya ya.", "bg-rose-600 border-rose-300 text-white");
             }
 
             expBox.classList.remove('hidden');
             document.getElementById('hud-score').textContent = gameState.score;
 
-            // Tutup modal otomatis setelah 2.1 detik agar balapan tetap seru
             setTimeout(() => {
                 modal.classList.add('hidden');
                 if (gameState.status === 'quiz') {
                     gameState.status = 'racing';
                 }
-            }, 2100);
+            }, 2200);
         }
 
         function showRaceFeedback(text, colorClass) {
@@ -1688,7 +1655,7 @@
         }
 
         // =========================================================================
-        // 9. UPDATE SIMULASI TIAP FRAME (MOBIL, BOT AI, LAWAN, & KAMERA)
+        // 10. ANIMASI LOOP 60 FPS & PEMBARUAN VISUAL 3D
         // =========================================================================
         let lastTime = performance.now();
 
@@ -1701,20 +1668,18 @@
             const gateSpacing = Math.floor((lvlCfg.trackLength - 140) / lvlCfg.gatesCount);
 
             if (gameState.status === 'racing' || gameState.status === 'quiz') {
-                // 1. Hitung Kecepatan Mobil Pemain
                 if (gameState.status === 'racing') {
                     if (gameState.turboTimer > 0) {
                         gameState.turboTimer -= dt;
-                        gameState.currentSpeed = lvlCfg.baseSpeed + 20; // Ngebut Turbo!
+                        gameState.currentSpeed = lvlCfg.baseSpeed + 20;
                     } else if (gameState.slowTimer > 0) {
                         gameState.slowTimer -= dt;
-                        gameState.currentSpeed = Math.max(13, lvlCfg.baseSpeed - 13); // Melambat
+                        gameState.currentSpeed = Math.max(13, lvlCfg.baseSpeed - 13);
                     } else {
                         gameState.currentSpeed = lvlCfg.baseSpeed;
                     }
                 }
 
-                // Efek Visual Api Turbo & Putaran Roda
                 if (turboFlameGroup) {
                     turboFlameGroup.visible = gameState.turboTimer > 0;
                     if (turboFlameGroup.visible) {
@@ -1727,28 +1692,22 @@
                     });
                 }
 
-                // 2. Majukan Jarak Pemain
                 gameState.distance += gameState.currentSpeed * dt;
-
-                // 3. Gerakkan Belok Kiri/Kanan (Smooth Lane Steering)
                 gameState.laneX += (gameState.targetLaneX - gameState.laneX) * 10 * dt;
                 playerCarMesh.position.x = gameState.laneX;
                 playerCarMesh.rotation.z = (gameState.laneX - gameState.targetLaneX) * 0.12;
 
-                // 4. Cek Apakah Melewati Gerbang Kuis PPKn
                 if (gameState.status === 'racing' && gameState.gatesSpawned < lvlCfg.gatesCount && gameState.distance >= gameState.nextGateDist) {
                     gameState.gatesSpawned++;
                     gameState.nextGateDist += gateSpacing;
                     triggerPPKnQuiz();
                 }
 
-                // 5. Cek Garis Finis
                 if (gameState.distance >= lvlCfg.trackLength) {
                     gameState.distance = lvlCfg.trackLength;
                     finishRaceForPlayer();
                 }
 
-                // 6. Gerakkan Bot AI (Jika Mode Solo)
                 if (gameState.mode === 'solo') {
                     Object.values(gameState.playersMap).forEach(p => {
                         if (p.isBot && !p.finished) {
@@ -1766,7 +1725,6 @@
                     });
                 }
 
-                // Update Data Pemain Lokal di Map
                 if (gameState.playersMap[gameState.playerId]) {
                     gameState.playersMap[gameState.playerId].distance = gameState.distance;
                     gameState.playersMap[gameState.playerId].laneX = gameState.laneX;
@@ -1774,12 +1732,10 @@
                     gameState.playersMap[gameState.playerId].correctCount = gameState.correctCount;
                 }
 
-                // 7. Update Visual Jalan, Rintangan Cone, Boost Pad, Gerbang Kuis, & Mobil Lawan
                 updateWorldVisuals(lvlCfg);
                 updateRaceHUD(lvlCfg);
                 renderLeaderboard();
             } else {
-                // Animasi idle di lobi
                 const angle = now * 0.0005;
                 camera.position.set(Math.sin(angle) * 8, 4.5, Math.cos(angle) * 8);
                 camera.lookAt(0, 1, 0);
@@ -1789,21 +1745,18 @@
         }
 
         function updateWorldVisuals(lvlCfg) {
-            // Efek jalan raya bergerak (looping posisi dekorasi)
             const offsetZ = gameState.distance % 18;
             sceneryObjects.forEach((obj, idx) => {
                 const baseZ = 10 - Math.floor(idx / 2) * 18;
                 obj.position.z = baseZ + offsetZ;
             });
 
-            // Update Posisi & Tabrakan Kerucut Lalu Lintas (Level 2 & 3)
             trackObstacles.forEach(obs => {
                 const relZ = -(obs.worldDist - gameState.distance);
                 obs.mesh.position.z = relZ;
                 obs.mesh.visible = (relZ > -180 && relZ < 20);
 
                 if (obs.hitCooldown > 0) obs.hitCooldown -= 0.016;
-                // Cek tabrakan mobil dengan cone
                 if (gameState.status === 'racing' && obs.hitCooldown <= 0 && Math.abs(relZ) < 1.6 && Math.abs(gameState.laneX - obs.laneX) < 1.2) {
                     obs.hitCooldown = 2.0;
                     gameState.slowTimer = 1.6;
@@ -1812,7 +1765,6 @@
                 }
             });
 
-            // Update Posisi & Aktivasi Zona Boost Pad Aspal (Level 3)
             boostPads.forEach(bp => {
                 const relZ = -(bp.worldDist - gameState.distance);
                 bp.mesh.position.z = relZ;
@@ -1827,7 +1779,6 @@
                 }
             });
 
-            // Posisikan Gerbang Kuis berikutnya relatif terhadap jarak pemain
             if (quizGates.length > 0) {
                 if (gameState.gatesSpawned < lvlCfg.gatesCount) {
                     const distToGate = gameState.nextGateDist - gameState.distance;
@@ -1838,16 +1789,13 @@
                 }
             }
 
-            // Posisikan Garis Finis relatif terhadap jarak pemain
             if (finishLineGroup) {
                 const distToFinish = lvlCfg.trackLength - gameState.distance;
                 finishLineGroup.position.z = -distToFinish;
             }
 
-            // Update posisi mobil lawan
             updateOpponent3DCars();
 
-            // Kamera mengikuti mobil pemain dari belakang
             const camShake = gameState.turboTimer > 0 ? (Math.random() - 0.5) * 0.12 : 0;
             camera.position.set(gameState.laneX * 0.65 + camShake, 5.8 + camShake, 9.5);
             camera.lookAt(gameState.laneX * 0.5, 1.4, -14);
@@ -1869,15 +1817,12 @@
                     opponentMeshes[p.id] = mesh;
                 }
 
-                // Posisi Z lawan relatif terhadap jarak pemain utama
                 const relativeZ = -(p.distance - gameState.distance);
                 mesh.position.x += ((p.laneX || 0) - mesh.position.x) * 0.15;
                 mesh.position.z += (relativeZ - mesh.position.z) * 0.2;
-                // Sembunyikan jika terlalu jauh di belakang/depan agar ringan
                 mesh.visible = (relativeZ > -150 && relativeZ < 35);
             });
 
-            // Hapus mesh pemain yang sudah keluar room
             Object.keys(opponentMeshes).forEach(id => {
                 if (!activeIds.has(id)) {
                     scene.remove(opponentMeshes[id]);
@@ -1891,7 +1836,6 @@
             document.getElementById('hud-progress-bar').style.width = `${pct}%`;
             document.getElementById('hud-distance-text').textContent = `${Math.round(gameState.distance)}m / ${lvlCfg.trackLength}m`;
 
-            // Konversi ke tampilan km/jam yang seru
             const displayKmh = Math.round(gameState.currentSpeed * 3.2);
             document.getElementById('hud-speed').textContent = displayKmh;
 
@@ -1908,7 +1852,7 @@
                 statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white mt-0.5";
             } else {
                 speedPanel.classList.remove('turbo-active', 'border-amber-400');
-                statusPill.textContent = "Normal (Gunakan ◀ / ▶)";
+                statusPill.textContent = "Normal (Gunakan ◀ / ▶ atau A / D)";
                 statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 mt-0.5";
             }
         }
@@ -1917,7 +1861,6 @@
             const listEl = document.getElementById('leaderboard-list');
             const players = Object.values(gameState.playersMap);
 
-            // Urutkan berdasarkan kombinasi jarak tempuh & skor PPKn
             players.sort((a, b) => (b.distance + b.score * 0.2) - (a.distance + a.score * 0.2));
 
             document.getElementById('hud-total-players').textContent = `${players.length}/${MAX_PLAYERS}`;
@@ -1943,7 +1886,7 @@
         }
 
         // =========================================================================
-        // 10. FINIS & PODIUM AKHIR
+        // 11. PODIUM AKHIR & REKAP SKOR PPKn
         // =========================================================================
         async function finishRaceForPlayer() {
             if (gameState.status === 'finished') return;
@@ -1953,7 +1896,7 @@
 
             if (gameState.mode === 'multiplayer' && isFirebaseReady) {
                 try {
-                    const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', `ppkn_players_${gameState.roomCode}`, gameState.playerId);
+                    const playerDocRef = doc(db, ROOT_COLLECTION, gameState.roomCode, 'players', gameState.playerId);
                     await updateDoc(playerDocRef, {
                         distance: lvlCfg.trackLength,
                         score: gameState.score,
@@ -1963,14 +1906,12 @@
                 } catch (e) {}
             }
 
-            // Tampilkan Podium & Rekap Kelas
             const players = Object.values(gameState.playersMap);
             players.sort((a, b) => (b.score + b.distance * 0.1) - (a.score + a.distance * 0.1));
 
             document.getElementById('podium-level-tag').textContent = `${lvlCfg.emoji} ${lvlCfg.fullTitle}`;
-            document.getElementById('podium-subtitle').textContent = `Hebat! Kamu telah menaklukkan ${lvlCfg.title} (${gameState.correctCount}/${lvlCfg.gatesCount} Jawaban Benar).`;
+            document.getElementById('podium-subtitle').textContent = `Hebat! Kamu menaklukkan ${lvlCfg.title} (${gameState.correctCount}/${lvlCfg.gatesCount} Jawaban Benar).`;
 
-            // Atur tombol Lanjut ke Level Berikutnya
             const nextLevelBtn = document.getElementById('btn-next-level');
             if (gameState.selectedLevel < 3) {
                 const nextLvl = LEVELS_CONFIG[gameState.selectedLevel + 1];
@@ -2010,7 +1951,7 @@
         }
 
         // =========================================================================
-        // 11. SISTEM LIVE CHATTING KELAS (FIRESTORE + LOKAL FALLBACK)
+        // 12. LIVE CHAT KELAS (RAMAH ANAK + STIKER INSTAN)
         // =========================================================================
         async function sendChatMessage(rawText) {
             const cleanText = filterKidFriendlyText(rawText);
@@ -2018,7 +1959,7 @@
 
             if (gameState.mode === 'multiplayer' && isFirebaseReady && gameState.roomCode) {
                 try {
-                    const chatCol = collection(db, 'artifacts', appId, 'public', 'data', `ppkn_chat_${gameState.roomCode}`);
+                    const chatCol = collection(db, ROOT_COLLECTION, gameState.roomCode, 'chat');
                     await addDoc(chatCol, {
                         senderId: gameState.playerId,
                         senderName: gameState.playerName,
@@ -2062,7 +2003,6 @@
             });
             container.scrollTop = container.scrollHeight;
 
-            // Tampilkan titik notifikasi jika panel chat sedang ditutup
             const chatPanel = document.getElementById('panel-chat');
             if (chatPanel.classList.contains('hidden')) {
                 document.getElementById('chat-unread-badge').classList.remove('hidden');
@@ -2077,7 +2017,7 @@
         }
 
         // =========================================================================
-        // 12. EVENT LISTENERS UI & KONTROL KENDARAAN
+        // 13. EVENT LISTENERS UI & KONTROL KENDARAAN
         // =========================================================================
         function selectGameLevel(levelId, syncToFirestore = true) {
             gameState.selectedLevel = levelId;
@@ -2097,40 +2037,38 @@
                 waitBadge.textContent = `${lvl.emoji} ${lvl.shortName}: ${lvl.title}`;
             }
 
-            // Ubah pratinjau suasana 3D di belakang lobi secara langsung
             if (scene) {
                 applyLevelEnvironment3D(levelId);
             }
 
-            // Jika host sedang di ruang tunggu room, sinkronkan pilihan level ke semua siswa
             if (syncToFirestore && gameState.mode === 'multiplayer' && gameState.isHost && isFirebaseReady && gameState.roomCode) {
-                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ppkn_rooms', gameState.roomCode);
+                const roomRef = doc(db, ROOT_COLLECTION, gameState.roomCode);
                 updateDoc(roomRef, { level: levelId }).catch(() => {});
             }
         }
 
         function setupUIAndControls() {
-            // Render Pilihan Mobil di Lobi
+            // Render 6 Pilihan Mobil Balap Nusantara
             const carContainer = document.getElementById('car-selector');
             CAR_MODELS.forEach((car, index) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = `car-opt-btn p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center gap-1 ${
-                    index === 0 ? 'bg-sky-500/25 border-sky-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                btn.className = `car-opt-btn p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 ${
+                    index === 0 ? 'bg-sky-500/25 border-sky-400 text-white shadow-md' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
                 }`;
-                btn.innerHTML = `<span class="text-2xl">${car.emoji}</span><span class="font-game text-[11px] font-bold leading-tight">${car.name}</span>`;
+                btn.innerHTML = `<span class="text-xl sm:text-2xl">${car.emoji}</span><span class="font-game text-[11px] font-bold leading-tight">${car.name}</span>`;
                 btn.onclick = () => {
                     gameState.selectedCar = car;
                     document.querySelectorAll('.car-opt-btn').forEach(b => {
-                        b.className = 'car-opt-btn p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center gap-1 bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500';
+                        b.className = 'car-opt-btn p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500';
                     });
-                    btn.className = 'car-opt-btn p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center gap-1 bg-sky-500/25 border-sky-400 text-white';
+                    btn.className = 'car-opt-btn p-2 rounded-xl border-2 text-center transition flex flex-col items-center gap-0.5 bg-sky-500/25 border-sky-400 text-white shadow-md';
                     updatePlayerCarAppearance();
                 };
                 carContainer.appendChild(btn);
             });
 
-            // Render Pilihan Level 1, 2, 3 di Lobi
+            // Render 3 Pilihan Level Materi & Sirkuit
             const levelContainer = document.getElementById('level-selector');
             Object.values(LEVELS_CONFIG).forEach((lvl) => {
                 const btn = document.createElement('button');
@@ -2170,7 +2108,7 @@
             document.getElementById('btn-leave-room').addEventListener('click', async () => {
                 if (gameState.mode === 'multiplayer' && isFirebaseReady && gameState.roomCode) {
                     try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `ppkn_players_${gameState.roomCode}`, gameState.playerId));
+                        await deleteDoc(doc(db, ROOT_COLLECTION, gameState.roomCode, 'players', gameState.playerId));
                     } catch (e) {}
                 }
                 cleanupListeners();
@@ -2180,8 +2118,10 @@
 
             document.getElementById('btn-start-race').addEventListener('click', async () => {
                 if (gameState.mode === 'multiplayer' && isFirebaseReady && gameState.roomCode) {
-                    const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ppkn_rooms', gameState.roomCode);
-                    await updateDoc(roomRef, { status: 'racing', level: gameState.selectedLevel });
+                    try {
+                        const roomRef = doc(db, ROOT_COLLECTION, gameState.roomCode);
+                        await updateDoc(roomRef, { status: 'racing', level: gameState.selectedLevel });
+                    } catch (e) {}
                 }
                 startRaceSequence();
             });
@@ -2197,7 +2137,7 @@
                 } else {
                     if (isFirebaseReady && gameState.roomCode) {
                         try {
-                            const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', `ppkn_players_${gameState.roomCode}`, gameState.playerId);
+                            const playerDocRef = doc(db, ROOT_COLLECTION, gameState.roomCode, 'players', gameState.playerId);
                             await updateDoc(playerDocRef, { distance: 0, score: 0, correctCount: 0, finished: false });
                         } catch (e) {}
                     }
@@ -2216,7 +2156,7 @@
                 document.getElementById('lobby-guide').classList.remove('hidden');
             });
 
-            // Kontrol Setir Kiri / Kanan (Keyboard & Sentuh)
+            // Kontrol Setir Kiri / Kanan (Keyboard & Touch)
             const steerLeft = () => {
                 if (gameState.status !== 'racing') return;
                 gameState.targetLaneX = Math.max(-6.2, gameState.targetLaneX - 2.2);
@@ -2227,7 +2167,6 @@
             };
 
             window.addEventListener('keydown', (e) => {
-                // Jangan belokkan mobil saat sedang mengetik di kotak chat atau input nama
                 if (document.activeElement.tagName === 'INPUT') return;
                 if (e.code === 'ArrowLeft' || e.code === 'KeyA') steerLeft();
                 if (e.code === 'ArrowRight' || e.code === 'KeyD') steerRight();
@@ -2236,7 +2175,7 @@
             document.getElementById('btn-steer-left').addEventListener('click', steerLeft);
             document.getElementById('btn-steer-right').addEventListener('click', steerRight);
 
-            // Toggle Chat & Leaderboard
+            // Toggle Chat & Klasemen
             const chatPanel = document.getElementById('panel-chat');
             document.getElementById('btn-toggle-chat').addEventListener('click', () => {
                 chatPanel.classList.toggle('hidden');
@@ -2270,7 +2209,6 @@
                 });
             });
 
-            // Responsif Resize Layar
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -2278,12 +2216,12 @@
             });
         }
 
-        // Mulai Aplikasi Saat Halaman Siap
-        window.onload = async function () {
+        // Jalankan UI & Dunia 3D langsung tanpa menunggu jaringan, lalu sambungkan Firebase
+        window.onload = function () {
             init3DWorld();
             setupUIAndControls();
             requestAnimationFrame(animateLoop);
-            await initFirebase();
+            initFirebase();
         };
     </script>
 </body>
